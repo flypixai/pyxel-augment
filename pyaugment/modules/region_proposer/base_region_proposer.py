@@ -13,6 +13,7 @@ class ImageDetection:
 
 @dataclass
 class ImageDetectionList:
+    detected_object: str
     detections_list: List[ImageDetection]
 
 class BaseRegionProposer(ABC):

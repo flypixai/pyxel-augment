@@ -120,13 +120,13 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         del grounding_dino_model
         torch.cuda.empty_cache()
 
-        return detection_list
+        return ImageDetectionList(detected_object = classes[0], detections_list = detection_list)
     def __segment_objects_all__(self,detections_list: ImageDetectionList)->ImageDetectionList:
         # load model
         sam = sam_model_registry[self.sam_encoder_version](checkpoint=self.sam_ckpt_path)
         sam.to(device=DEVICE)
         sam_predictor = SamPredictor(sam)
-        for image_detection in detections_list:
+        for image_detection in detections_list.detections_list:
             image_detection.detections = self.__segment_objects__(sam_predictor = sam_predictor,
                                                                     image = image_detection.image_array,
                                                                     detections = image_detection.detections)
@@ -135,7 +135,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         torch.cuda.empty_cache()
         return detections_list
     def __reduce_bboxes_all__(self, detection_list: ImageDetectionList) -> ImageDetectionList:
-        for image_detection in detection_list:
+        for image_detection in detection_list.detections_list:
             image_detection.detections = self.__reduce_bboxes__(image_detection.detections)
         return detection_list
     def propose_region(self, images_path: str, 
