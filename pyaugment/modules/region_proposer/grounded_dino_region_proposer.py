@@ -1,45 +1,54 @@
 import numpy
 import torchvision
 import torch
-from pyaugment.modules.region_proposer.base_region_proposer import BaseRegionProposer
+import cv2
+import os
+from pyaugment.modules.region_proposer.base_region_proposer import BaseRegionProposer, ImageDetectionList, ImageDetection
+from typing import List, Optional
 # TODO: Installing the next two is from source, running this necessiates 
 # cloning grounded_segment_anything, is there a better way of doing this?
 from groundingdino.util.inference import Model as GDinoModel
 from segment_anything import sam_model_registry, SamPredictor
 from supervision.detection.core import Detections
+from dataclasses import dataclass
 
 
 # TODO: find a better way to do this 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
 class GroundedSAMRegionProposer(BaseRegionProposer):
     """
-    A region proposer that combines object detection with object segmentation using two models: Grounding Dino and SAM.
+    A region proposer that combines object detection with object segmentation using Grounding Dino and SAM models.
 
     Parameters:
-        gdino_config_path (str): The path to the GDino model configuration file.
-        gdino_ckpt_path (str): The path to the GDino model checkpoint file.
-        sam_encoder_version (str): The version of the SAM encoder to use.
-        sam_ckpt_path (str): The path to the SAM model checkpoint file.
+        gdino_config_path (str): The path to the Grounding Dino model configuration file.
+        gdino_ckpt_path (str): The path to the Grounding Dino checkpoint file.
+        sam_encoder_version (str): The version of SAM encoder to use.
+        sam_ckpt_path (str): The path to SAM checkpoint file.
 
     Methods:
-        propose_region(image, prompt, box_threshold=0.3, text_threshold=0.25):
-            Detects objects in the input image using Grounding Dino , performs non-maximum suppression (NMS) on the detections,
+        propose_region(images_path: str, prompt: list, box_threshold: float = 0.3, text_threshold: float = 0.25) -> ImageDetectionList:
+            Detects objects in a set of images using Grounding Dino, performs non-maximum suppression (NMS) on the detections,
             and segments the objects using SAM.
 
-        __detect_objects__(image, classes, box_threshold, text_threshold):
-            Detects objects in the input image using the Grounding Dino.
+        __detect_objects_all__(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> ImageDetectionList:
+            Detects objects in a set of images using the Grounding Dino.
 
-        __reduce_bboxes__(detections):
-            Applies non-maximum suppression (NMS) to the given detections.
+        __reduce_bboxes_all__(detection_list: ImageDetectionList) -> ImageDetectionList:
+            Applies non-maximum suppression (NMS) to reduce overlapping bounding boxes in a list of detections.
 
-        __segment_objects__(image, xyxy):
-            Segments objects in the input image using the SAM.
+        __segment_objects_all__(detections_list: ImageDetectionList) -> ImageDetectionList:
+            Segments objects in a list of detections using SAM.
+
+        __segment_objects__(sam_predictor, image: numpy.ndarray, detections: numpy.ndarray) -> Detections:
+            Segments objects in a single image using SAM.
+
+        __reduce_bboxes__(detections: Detections) -> Detections:
+            Applies non-maximum suppression (NMS) to reduce overlapping bounding boxes in a single detection.
 
     Note:
         This class extends the BaseRegionProposer class and provides methods for proposing regions by
-        combining object detection and segmentation using Grounding Dino and SAM.
+        combining object detection and segmentation using GDino and SAM models.
     """
     def __init__(self, 
                  gdino_config_path, 
@@ -67,61 +76,80 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         print(f"After NMS: {len(detections.xyxy)} boxes")
 
         return detections
-    def __detect_objects__(self, image: numpy.ndarray,
-                       classes: str,
-                       box_threshold: float,
-                       text_threshold: float) -> Detections:
-        # load model
-        grounding_dino_model = GDinoModel(model_config_path=self.gdino_config_path, 
-                                model_checkpoint_path=self.gdino_ckpt_path,
-                                device=DEVICE)
-        # detect
-        detections = grounding_dino_model.predict_with_classes(
-        image=image,
-        classes=classes,
-        box_threshold=box_threshold,
-        text_threshold=text_threshold
-        )
-        # unload model
-        del grounding_dino_model
-        torch.cuda.empty_cache()
-        
-        return detections
-    def __segment_objects__(self, image: numpy.ndarray,
-                            xyxy: numpy.ndarray)-> list:
-        # load model
-        sam = sam_model_registry[self.sam_encoder_version](checkpoint=self.sam_ckpt_path)
-        sam.to(device=DEVICE)
-        sam_predictor = SamPredictor(sam)
+    def __segment_objects__(self, sam_predictor,
+                            image: numpy.ndarray,
+                            detections: numpy.ndarray)-> Detections:
+ 
         # segment
         sam_predictor.set_image(image)
         result_masks = []
-        for box in xyxy:
+        for box in detections.xyxy:
             masks, scores, logits = sam_predictor.predict(
                 box=box,
                 multimask_output=True
             )
             index = numpy.argmax(scores)
             result_masks.append(masks[index])
+            detections.mask = numpy.array(result_masks)
+        return detections
+    def __detect_objects_all__(self, 
+                              images_path: str,
+                              classes: list,
+                              box_threshold: float,
+                              text_threshold: float) -> ImageDetectionList:
+        images_files = os.listdir(images_path)
+        # load model
+        grounding_dino_model = GDinoModel(model_config_path=self.gdino_config_path, 
+                                model_checkpoint_path=self.gdino_ckpt_path,
+                                device=DEVICE)
+        detection_list = []
+
+        for image_file in images_files:
+
+            image = cv2.imread(os.path.join(images_path,image_file))
+
+            image_detection = ImageDetection(file_name = os.path.join(images_path,image_file),
+                                             image_array = image)
+            image_detection.detections =  grounding_dino_model.predict_with_classes(image=image,
+                                                                                    classes=classes,
+                                                                                    box_threshold=box_threshold,
+                                                                                    text_threshold=text_threshold)
+            detection_list.append(image_detection)
+            
+        # unload model
+        del grounding_dino_model
+        torch.cuda.empty_cache()
+
+        return detection_list
+    def __segment_objects_all__(self,detections_list: ImageDetectionList)->ImageDetectionList:
+        # load model
+        sam = sam_model_registry[self.sam_encoder_version](checkpoint=self.sam_ckpt_path)
+        sam.to(device=DEVICE)
+        sam_predictor = SamPredictor(sam)
+        for image_detection in detections_list:
+            image_detection.detections = self.__segment_objects__(sam_predictor = sam_predictor,
+                                                                    image = image_detection.image_array,
+                                                                    detections = image_detection.detections)
         # unload model
         del sam
         torch.cuda.empty_cache()
-        return result_masks
-    def propose_region(self, image: numpy.ndarray, 
+        return detections_list
+    def __reduce_bboxes_all__(self, detection_list: ImageDetectionList) -> ImageDetectionList:
+        for image_detection in detection_list:
+            image_detection.detections = self.__reduce_bboxes__(image_detection.detections)
+        return detection_list
+    def propose_region(self, images_path: str, 
                        prompt: list,
                        box_threshold: float = 0.3,
-                       text_threshold: float = 0.25) -> list:
+                       text_threshold: float = 0.25) -> ImageDetectionList:
         # detect object
-        detections = self.__detect_objects__(
-            image=image,
+        detections_list = self.__detect_objects_all__(
+            images_path=images_path,
             classes=prompt,
             box_threshold=box_threshold,
             text_threshold=text_threshold)
         # non_max supression(nms)
-        detections_filtered = self.__reduce_bboxes__(detections)
+        detections_filtered_list = self.__reduce_bboxes_all__(detections_list)
         # sam output
-        detections_masks = self.__segment_objects__(
-            image = image, 
-            xyxy = detections_filtered.xyxy
-        )
-        return detections_masks
+        detections_masks_list = self.__segment_objects_all__(detections_filtered_list)
+        return detections_masks_list

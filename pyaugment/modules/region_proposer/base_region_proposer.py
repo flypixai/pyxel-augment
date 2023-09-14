@@ -1,16 +1,30 @@
 from abc import ABC, abstractmethod
 import numpy
+from supervision.detection.core import Detections
+from typing import List, Optional
+from dataclasses import dataclass
+
+
+@dataclass
+class ImageDetection:
+    file_name: str
+    image_array: numpy.ndarray
+    detections: Optional[Detections] = None
+
+@dataclass
+class ImageDetectionList:
+    detections_list: List[ImageDetection]
 
 class BaseRegionProposer(ABC):
     """
     An abstract base class for region proposer methods.
 
     Methods:
-        propose_region(image, prompt) -> list:
+        propose_region(image_path, prompt) -> ImageDetectionList:
             Abstract method to propose regions of interest (ROIs) in an image.
 
             Args:
-                image: The input image for which regions of interest are proposed.
+                images_path: path of the images for which regions of interest are proposed.
                 prompt: Additional prompt or information that may guide the region proposal.
 
             Returns:
@@ -19,7 +33,7 @@ class BaseRegionProposer(ABC):
     Example:
         # Create a custom region proposer by subclassing BaseRegionProposer
         class MyRegionProposer(BaseRegionProposer):
-            def propose_region(self, image, prompt) -> list:
+            def propose_region(self, image, prompt) -> ImageDetectionList:
                 # Implement your region proposal logic here
                 # Return a list of proposed regions of interest (ROIs).
                 pass
@@ -28,14 +42,14 @@ class BaseRegionProposer(ABC):
         super().__init__()
 
     @abstractmethod
-    def propose_region(self, image: numpy.ndarray, prompt) -> list:
+    def propose_region(self, images_path: str, prompt) -> ImageDetectionList:
         """
         Abstract method to propose regions of interest (ROIs) in an image.
 
         Subclasses should implement this method to provide custom region proposal logic.
 
         Args:
-            image: The input image for which regions of interest are proposed.
+            images_path: path of the images for which regions of interest are proposed.
             prompt: Additional prompt or information that may guide the region proposal.
 
         Returns:

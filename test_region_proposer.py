@@ -1,5 +1,4 @@
 from pyaugment.modules.region_proposer.grounded_dino_region_proposer import GroundedSAMRegionProposer
-import cv2 
 import os
 
 # Specify the path to the directory you want to set as the current working directory
@@ -15,9 +14,9 @@ proposer = GroundedSAMRegionProposer(gdino_config_path= "GroundingDINO/grounding
                                      sam_ckpt_path = "./sam_vit_h_4b8939.pth"
  
                                     )
-image = cv2.imread("./assets/demo2.jpg")
+images_path = "./assets_test"
 prompt = ["The running dog"]
-output = proposer.propose_region(image=image,
+output = proposer.propose_region(images_path=images_path,
                                  prompt=prompt,
                                  box_threshold= 0.25,
                                  text_threshold= 0.25)
