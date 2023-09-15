@@ -31,19 +31,19 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             Detects objects in a set of images using Grounding Dino, performs non-maximum suppression (NMS) on the detections,
             and segments the objects using SAM.
 
-        __detect_objects_all__(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> ImageDetectionList:
+        __detect_objects_all(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> ImageDetectionList:
             Detects objects in a set of images using the Grounding Dino.
 
-        __reduce_bboxes_all__(detection_list: ImageDetectionList) -> ImageDetectionList:
+        __reduce_bboxes_all(detection_list: ImageDetectionList) -> ImageDetectionList:
             Applies non-maximum suppression (NMS) to reduce overlapping bounding boxes in a list of detections.
 
-        __segment_objects_all__(detections_list: ImageDetectionList) -> ImageDetectionList:
+        __segment_objects_all(detections_list: ImageDetectionList) -> ImageDetectionList:
             Segments objects in a list of detections using SAM.
 
-        __segment_objects__(sam_predictor, image: numpy.ndarray, detections: numpy.ndarray) -> Detections:
+        __detect_objects_all(sam_predictor, image: numpy.ndarray, detections: numpy.ndarray) -> Detections:
             Segments objects in a single image using SAM.
 
-        __reduce_bboxes__(detections: Detections) -> Detections:
+        __reduce_bboxes(detections: Detections) -> Detections:
             Applies non-maximum suppression (NMS) to reduce overlapping bounding boxes in a single detection.
 
     Note:
@@ -60,7 +60,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         self.gdino_ckpt_path = gdino_ckpt_path
         self.sam_ckpt_path = sam_ckpt_path
         self.sam_encoder_version = sam_encoder_version
-    def __reduce_bboxes__(self, detections: Detections) -> Detections:
+    def __reduce_bboxes(self, detections: Detections) -> Detections:
         NMS_THRESHOLD = 0.8 ## TODO: find a better way to introduce this
         print(f"Before NMS: {len(detections.xyxy)} boxes")
         nms_idx = torchvision.ops.nms(
@@ -76,7 +76,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         print(f"After NMS: {len(detections.xyxy)} boxes")
 
         return detections
-    def __segment_objects__(self, sam_predictor,
+    def __segment_objects(self, sam_predictor,
                             image: numpy.ndarray,
                             detections: numpy.ndarray)-> Detections:
  
@@ -92,7 +92,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             result_masks.append(masks[index])
             detections.mask = numpy.array(result_masks)
         return detections
-    def __detect_objects_all__(self, 
+    def __detect_objects_all(self, 
                               images_path: str,
                               classes: list,
                               box_threshold: float,
@@ -121,36 +121,36 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         torch.cuda.empty_cache()
 
         return ImageDetectionList(detected_object = classes[0], detections_list = detection_list)
-    def __segment_objects_all__(self,detections_list: ImageDetectionList)->ImageDetectionList:
+    def __segment_objects_all(self,detections_list: ImageDetectionList)->ImageDetectionList:
         # load model
         sam = sam_model_registry[self.sam_encoder_version](checkpoint=self.sam_ckpt_path)
         sam.to(device=DEVICE)
         sam_predictor = SamPredictor(sam)
         for image_detection in detections_list.detections_list:
-            image_detection.detections = self.__segment_objects__(sam_predictor = sam_predictor,
+            image_detection.detections = self.__segment_objects(sam_predictor = sam_predictor,
                                                                     image = image_detection.image_array,
                                                                     detections = image_detection.detections)
         # unload model
         del sam
         torch.cuda.empty_cache()
         return detections_list
-    def __reduce_bboxes_all__(self, detection_list: ImageDetectionList) -> ImageDetectionList:
+    def __reduce_bboxes_all(self, detection_list: ImageDetectionList) -> ImageDetectionList:
         for image_detection in detection_list.detections_list:
-            image_detection.detections = self.__reduce_bboxes__(image_detection.detections)
+            image_detection.detections = self.__reduce_bboxes(image_detection.detections)
         return detection_list
     def propose_region(self, images_path: str, 
                        prompt: list,
                        box_threshold: float = 0.3,
                        text_threshold: float = 0.25) -> ImageDetectionList:
         # detect object
-        detections_list = self.__detect_objects_all__(
+        detections_list = self.__detect_objects_all(
             images_path=images_path,
             classes=prompt,
             box_threshold=box_threshold,
             text_threshold=text_threshold)
         # non_max supression(nms)
-        detections_filtered_list = self.__reduce_bboxes_all__(detections_list)
+        detections_filtered_list = self.__reduce_bboxes_all(detections_list)
         # sam output
-        detections_masks_list = self.__segment_objects_all__(detections_filtered_list)
+        detections_masks_list = self.__segment_objects_all(detections_filtered_list)
         # detection list
         return detections_masks_list
