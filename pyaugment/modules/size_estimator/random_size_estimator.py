@@ -21,7 +21,6 @@ class RandomSizeEstimator(BaseSizeEstimator):
     """
 
     def __init__(self, height_range: tuple, width_range: tuple) -> None:
-        super().__init__()
         self.height_range = height_range
         self.width_range = width_range
     
