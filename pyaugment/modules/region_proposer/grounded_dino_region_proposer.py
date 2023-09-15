@@ -152,4 +152,5 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         detections_filtered_list = self.__reduce_bboxes_all__(detections_list)
         # sam output
         detections_masks_list = self.__segment_objects_all__(detections_filtered_list)
+        # detection list
         return detections_masks_list
