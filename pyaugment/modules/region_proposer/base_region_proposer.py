@@ -15,17 +15,12 @@ class AnnotatedImage:
     detections: Optional[Detections] = None
 
 
-@dataclass
-class AnnotatedImages:
-    detections_list: List[AnnotatedImage]
-
-
 class BaseRegionProposer(ABC):
     """
     An abstract base class for region proposer methods.
 
     Methods:
-        propose_region(image_path, prompt) -> AnnotatedImages:
+        propose_region(image_path, prompt) -> List[AnnotatedImage]:
             Abstract method to propose regions of interest (ROIs) in an image.
 
             Args:
@@ -38,7 +33,7 @@ class BaseRegionProposer(ABC):
     Example:
         # Create a custom region proposer by subclassing BaseRegionProposer
         class MyRegionProposer(BaseRegionProposer):
-            def propose_region(self, image, prompt) -> AnnotatedImages:
+            def propose_region(self, image, prompt) -> List[AnnotatedImage]:
                 # Implement your region proposal logic here
                 # Return a list of proposed regions of interest (ROIs).
                 pass
@@ -48,7 +43,7 @@ class BaseRegionProposer(ABC):
         super().__init__()
 
     @abstractmethod
-    def propose_region(self, images_path: str, prompt) -> AnnotatedImages:
+    def propose_region(self, images_path: str, prompt) -> List[AnnotatedImage]:
         """
         Abstract method to propose regions of interest (ROIs) in an image.
 
@@ -66,7 +61,7 @@ class BaseRegionProposer(ABC):
         }
 
     def save_results(
-        self, json_file: bool, image_file: bool, detection_list: AnnotatedImages
+        self, json_file: bool, image_file: bool, detection_list: List[AnnotatedImage]
     ):
         if json_file:
             data = {
@@ -81,7 +76,7 @@ class BaseRegionProposer(ABC):
                             int(class_id) for class_id in detection.detections.class_id
                         ],
                     }
-                    for detection in detection_list.detections_list
+                    for detection in detection_list
                 ],
             }
             with open("gsam_output.json", "w+") as json_file:

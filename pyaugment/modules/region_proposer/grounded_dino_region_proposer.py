@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 
 import cv2
 import numpy
@@ -13,7 +14,6 @@ from supervision.detection.core import Detections
 
 from pyaugment.modules.region_proposer.base_region_proposer import (
     AnnotatedImage,
-    AnnotatedImages,
     BaseRegionProposer,
 )
 
@@ -31,17 +31,17 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         sam_ckpt_path (str): The path to SAM checkpoint file.
 
     Methods:
-        propose_region(images_path: str, prompt: list, box_threshold: float = 0.3, text_threshold: float = 0.25) -> AnnotatedImages:
+        propose_region(images_path: str, prompt: list, box_threshold: float = 0.3, text_threshold: float = 0.25) -> List[AnnotatedImage]:
             Detects objects in a set of images using Grounding Dino, performs non-maximum suppression (NMS) on the detections,
             and segments the objects using SAM.
 
-        __detect_objects_all(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> AnnotatedImages:
+        __detect_objects_all(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> List[AnnotatedImage]:
             Detects objects in a set of images using the Grounding Dino.
 
-        __reduce_bboxes_all(detection_list: AnnotatedImages) -> AnnotatedImages:
+        __reduce_bboxes_all(detection_list: List[AnnotatedImage]) -> List[AnnotatedImage]:
             Applies non-maximum suppression (NMS) to reduce overlapping bounding boxes in a list of detections.
 
-        __segment_objects_all(detections_list: AnnotatedImages) -> AnnotatedImages:
+        __segment_objects_all(detections_list: List[AnnotatedImage]) -> List[AnnotatedImage]:
             Segments objects in a list of detections using SAM.
 
         __detect_objects_all(sam_predictor, image: numpy.ndarray, detections: numpy.ndarray) -> Detections:
@@ -106,7 +106,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         classes: list,
         box_threshold: float,
         text_threshold: float,
-    ) -> AnnotatedImages:
+    ) -> List[AnnotatedImage]:
         images_files = Path(images_path).glob("*")
         # load model
         grounding_dino_model = GDinoModel(
@@ -134,18 +134,18 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         del grounding_dino_model
         torch.cuda.empty_cache()
 
-        return AnnotatedImages(detections_list=detection_list)
+        return detection_list
 
     def __segment_objects_all(
-        self, detections_list: AnnotatedImages
-    ) -> AnnotatedImages:
+        self, detections_list: List[AnnotatedImage]
+    ) -> List[AnnotatedImage]:
         # load model
         sam = sam_model_registry[self.sam_encoder_version](
             checkpoint=self.sam_ckpt_path
         )
         sam.to(device=DEVICE)
         sam_predictor = SamPredictor(sam)
-        for image_detection in detections_list.detections_list:
+        for image_detection in detections_list:
             image_detection.detections = self.__segment_objects(
                 sam_predictor=sam_predictor,
                 image=image_detection.image_array,
@@ -156,8 +156,10 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         torch.cuda.empty_cache()
         return detections_list
 
-    def __reduce_bboxes_all(self, detection_list: AnnotatedImages) -> AnnotatedImages:
-        for image_detection in detection_list.detections_list:
+    def __reduce_bboxes_all(
+        self, detection_list: List[AnnotatedImage]
+    ) -> List[AnnotatedImage]:
+        for image_detection in detection_list:
             image_detection.detections = self.__reduce_bboxes(
                 image_detection.detections
             )
@@ -169,7 +171,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         prompt: list,
         box_threshold: float = 0.3,
         text_threshold: float = 0.25,
-    ) -> AnnotatedImages:
+    ) -> List[AnnotatedImage]:
         super().propose_region(images_path=images_path, prompt=prompt)
         # detect object
         detections_list = self.__detect_objects_all(
