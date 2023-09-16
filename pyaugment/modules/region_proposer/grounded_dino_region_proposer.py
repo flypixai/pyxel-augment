@@ -106,6 +106,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         classes: list,
         box_threshold: float,
         text_threshold: float,
+        confidence_threshold: float,
     ) -> List[AnnotatedImage]:
         images_files = Path(images_path).glob("*")
         # load model
@@ -115,7 +116,6 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             device=DEVICE,
         )
         detections = []
-
         for image_file in images_files:
             image = cv2.imread(str(image_file))
 
@@ -128,7 +128,25 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
                 box_threshold=box_threshold,
                 text_threshold=text_threshold,
             )
-            detections.append(image_detection)
+            confidence_mask = (
+                image_detection.detections.confidence < confidence_threshold
+            )
+            low_confidence_indexes = image_detection.detections[confidence_mask]
+            try:
+                image_detection.detections.xyxy = numpy.delete(
+                    image_detection.detections.xyxy, low_confidence_indexes, axis=0
+                )
+                image_detection.detections.class_id = numpy.delete(
+                    image_detection.detections.class_id, low_confidence_indexes, axis=0
+                )
+                image_detection.detections.confidence = numpy.delete(
+                    image_detection.detections.confidence,
+                    low_confidence_indexes,
+                    axis=0,
+                )
+                detections.append(image_detection)
+            except:
+                continue
 
         # unload model
         del grounding_dino_model
@@ -171,6 +189,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         prompt: list,
         box_threshold: float = 0.3,
         text_threshold: float = 0.25,
+        confidence_threshold: float = 0.8,
     ) -> List[AnnotatedImage]:
         super().propose_region(images_path=images_path, prompt=prompt)
         # detect object
@@ -179,10 +198,10 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             classes=prompt,
             box_threshold=box_threshold,
             text_threshold=text_threshold,
+            confidence_threshold=confidence_threshold,
         )
         # non_max supression(nms)
         detections_filtered = self.__reduce_bboxes_all(detections)
         # sam output
         detections_masks = self.__segment_objects_all(detections_filtered)
-        # detection list
         return detections_masks

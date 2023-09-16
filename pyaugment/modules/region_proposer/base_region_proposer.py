@@ -75,6 +75,7 @@ class BaseRegionProposer(ABC):
                         "classes": [
                             int(class_id) for class_id in detection.detections.class_id
                         ],
+                        "confidence": detection.detections.confidence.tolist(),
                     }
                     for detection in detections
                 ],
@@ -83,12 +84,17 @@ class BaseRegionProposer(ABC):
                 json.dump(data, json_file, indent=4)
 
         if image_file:
-            for img_detect in detections:
-                for i, segmentation in enumerate(img_detect.detections.mask):
-                    segmentation_image = numpy.uint8(segmentation) * 255
-                    cv2.imwrite(
-                        img_detect.file_name[:-3] + f"_{i}.jpg", segmentation_image
-                    )
+            try:
+                for img_detect in detections:
+                    for i, segmentation in enumerate(img_detect.detections.mask):
+                        segmentation_image = numpy.uint8(segmentation) * 255
+                        cv2.imwrite(
+                            img_detect.file_name[:-4] + f"_{i}.jpg", segmentation_image
+                        )
+            except:
+                print(
+                    f"Image {img_detect.file_name} doesn't contain {self.object_categories.keys}"
+                )
 
     def _transform_mask_to_polygone(self, masks):
         segmentation_all = []
