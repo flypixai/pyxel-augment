@@ -61,7 +61,7 @@ class BaseRegionProposer(ABC):
         }
 
     def save_results(
-        self, json_file: bool, image_file: bool, detection_list: List[AnnotatedImage]
+        self, json_file: bool, image_file: bool, detections: List[AnnotatedImage]
     ):
         if json_file:
             data = {
@@ -76,7 +76,7 @@ class BaseRegionProposer(ABC):
                             int(class_id) for class_id in detection.detections.class_id
                         ],
                     }
-                    for detection in detection_list
+                    for detection in detections
                 ],
             }
             with open("gsam_output.json", "w+") as json_file:
