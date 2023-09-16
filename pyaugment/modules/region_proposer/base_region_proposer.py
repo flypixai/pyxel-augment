@@ -9,16 +9,15 @@ from supervision.detection.core import Detections
 
 
 @dataclass
-class ImageDetection:
+class AnnotatedImage:
     file_name: str
     image_array: numpy.ndarray
     detections: Optional[Detections] = None
 
 
 @dataclass
-class ImageDetectionList:
-    detected_object: str
-    detections_list: List[ImageDetection]
+class AnnotatedImages:
+    detections_list: List[AnnotatedImage]
 
 
 class BaseRegionProposer(ABC):
@@ -26,7 +25,7 @@ class BaseRegionProposer(ABC):
     An abstract base class for region proposer methods.
 
     Methods:
-        propose_region(image_path, prompt) -> ImageDetectionList:
+        propose_region(image_path, prompt) -> AnnotatedImages:
             Abstract method to propose regions of interest (ROIs) in an image.
 
             Args:
@@ -39,7 +38,7 @@ class BaseRegionProposer(ABC):
     Example:
         # Create a custom region proposer by subclassing BaseRegionProposer
         class MyRegionProposer(BaseRegionProposer):
-            def propose_region(self, image, prompt) -> ImageDetectionList:
+            def propose_region(self, image, prompt) -> AnnotatedImages:
                 # Implement your region proposal logic here
                 # Return a list of proposed regions of interest (ROIs).
                 pass
@@ -49,7 +48,7 @@ class BaseRegionProposer(ABC):
         super().__init__()
 
     @abstractmethod
-    def propose_region(self, images_path: str, prompt) -> ImageDetectionList:
+    def propose_region(self, images_path: str, prompt) -> AnnotatedImages:
         """
         Abstract method to propose regions of interest (ROIs) in an image.
 
@@ -62,40 +61,48 @@ class BaseRegionProposer(ABC):
         Returns:
             list: A list of proposed regions of interest (ROIs).
         """
-        pass
+        self.object_categories = {
+            class_name: class_id for class_id, class_name in enumerate(prompt)
+        }
 
     def save_results(
-        self, json_file: bool, image_file: bool, detection_list: ImageDetectionList
+        self, json_file: bool, image_file: bool, detection_list: AnnotatedImages
     ):
         if json_file:
             data = {
-                "object": detection_list.detected_object,
+                "categories": self.object_categories,
                 "annotations": [
                     {
                         "image": detection.file_name,
                         "segmentation": self._transform_mask_to_polygone(
                             detection.detections.mask
                         ),
+                        "classes": [
+                            int(class_id) for class_id in detection.detections.class_id
+                        ],
                     }
                     for detection in detection_list.detections_list
                 ],
             }
-            with open("gsamoutput.json", "w+") as json_file:
+            with open("gsam_output.json", "w+") as json_file:
                 json.dump(data, json_file, indent=4)
 
     def _transform_mask_to_polygone(self, masks):
         segmentation_all = []
-        for mask in masks:
-            contours, hierarchy = cv2.findContours(
-                mask.astype(numpy.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-            )
-            segmentation = []
+        try:
+            for mask in masks:
+                contours, hierarchy = cv2.findContours(
+                    mask.astype(numpy.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+                )
+                segmentation = []
 
-            for contour in contours:
-                contour = contour.flatten().tolist()
-                if len(contour) > 4:
-                    segmentation.append(contour)
-            if len(segmentation) == 0:
-                continue
-            segmentation_all.append(segmentation)
+                for contour in contours:
+                    contour = contour.flatten().tolist()
+                    if len(contour) > 4:
+                        segmentation.append(contour)
+                if len(segmentation) == 0:
+                    continue
+                segmentation_all.append(segmentation)
+        except:
+            return segmentation_all
         return segmentation_all

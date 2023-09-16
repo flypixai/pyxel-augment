@@ -12,9 +12,9 @@ from segment_anything import SamPredictor, sam_model_registry
 from supervision.detection.core import Detections
 
 from pyaugment.modules.region_proposer.base_region_proposer import (
+    AnnotatedImage,
+    AnnotatedImages,
     BaseRegionProposer,
-    ImageDetection,
-    ImageDetectionList,
 )
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,17 +31,17 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         sam_ckpt_path (str): The path to SAM checkpoint file.
 
     Methods:
-        propose_region(images_path: str, prompt: list, box_threshold: float = 0.3, text_threshold: float = 0.25) -> ImageDetectionList:
+        propose_region(images_path: str, prompt: list, box_threshold: float = 0.3, text_threshold: float = 0.25) -> AnnotatedImages:
             Detects objects in a set of images using Grounding Dino, performs non-maximum suppression (NMS) on the detections,
             and segments the objects using SAM.
 
-        __detect_objects_all(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> ImageDetectionList:
+        __detect_objects_all(images_path: str, classes: list, box_threshold: float, text_threshold: float) -> AnnotatedImages:
             Detects objects in a set of images using the Grounding Dino.
 
-        __reduce_bboxes_all(detection_list: ImageDetectionList) -> ImageDetectionList:
+        __reduce_bboxes_all(detection_list: AnnotatedImages) -> AnnotatedImages:
             Applies non-maximum suppression (NMS) to reduce overlapping bounding boxes in a list of detections.
 
-        __segment_objects_all(detections_list: ImageDetectionList) -> ImageDetectionList:
+        __segment_objects_all(detections_list: AnnotatedImages) -> AnnotatedImages:
             Segments objects in a list of detections using SAM.
 
         __detect_objects_all(sam_predictor, image: numpy.ndarray, detections: numpy.ndarray) -> Detections:
@@ -106,7 +106,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         classes: list,
         box_threshold: float,
         text_threshold: float,
-    ) -> ImageDetectionList:
+    ) -> AnnotatedImages:
         images_files = Path(images_path).glob("*")
         # load model
         grounding_dino_model = GDinoModel(
@@ -119,7 +119,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         for image_file in images_files:
             image = cv2.imread(str(image_file))
 
-            image_detection = ImageDetection(
+            image_detection = AnnotatedImage(
                 file_name=str(image_file), image_array=image
             )
             image_detection.detections = grounding_dino_model.predict_with_classes(
@@ -134,13 +134,11 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         del grounding_dino_model
         torch.cuda.empty_cache()
 
-        return ImageDetectionList(
-            detected_object=classes[0], detections_list=detection_list
-        )
+        return AnnotatedImages(detections_list=detection_list)
 
     def __segment_objects_all(
-        self, detections_list: ImageDetectionList
-    ) -> ImageDetectionList:
+        self, detections_list: AnnotatedImages
+    ) -> AnnotatedImages:
         # load model
         sam = sam_model_registry[self.sam_encoder_version](
             checkpoint=self.sam_ckpt_path
@@ -158,9 +156,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         torch.cuda.empty_cache()
         return detections_list
 
-    def __reduce_bboxes_all(
-        self, detection_list: ImageDetectionList
-    ) -> ImageDetectionList:
+    def __reduce_bboxes_all(self, detection_list: AnnotatedImages) -> AnnotatedImages:
         for image_detection in detection_list.detections_list:
             image_detection.detections = self.__reduce_bboxes(
                 image_detection.detections
@@ -173,7 +169,8 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         prompt: list,
         box_threshold: float = 0.3,
         text_threshold: float = 0.25,
-    ) -> ImageDetectionList:
+    ) -> AnnotatedImages:
+        super().propose_region(images_path=images_path, prompt=prompt)
         # detect object
         detections_list = self.__detect_objects_all(
             images_path=images_path,

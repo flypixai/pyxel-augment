@@ -18,7 +18,7 @@ proposer = GroundedSAMRegionProposer(
     sam_ckpt_path="./sam_vit_h_4b8939.pth",
 )
 images_path = "./assets_test"
-prompt = ["The running dog"]
+prompt = ["dog", "sky"]
 output = proposer.propose_region(
     images_path=images_path, prompt=prompt, box_threshold=0.25, text_threshold=0.25
 )
