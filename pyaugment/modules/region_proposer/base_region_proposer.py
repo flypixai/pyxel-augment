@@ -82,6 +82,14 @@ class BaseRegionProposer(ABC):
             with open("gsam_output.json", "w+") as json_file:
                 json.dump(data, json_file, indent=4)
 
+        if image_file:
+            for img_detect in detections:
+                for i, segmentation in enumerate(img_detect.detections.mask):
+                    segmentation_image = numpy.uint8(segmentation) * 255
+                    cv2.imwrite(
+                        img_detect.file_name[:-3] + f"_{i}.jpg", segmentation_image
+                    )
+
     def _transform_mask_to_polygone(self, masks):
         segmentation_all = []
         try:

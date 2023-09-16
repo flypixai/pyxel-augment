@@ -23,4 +23,4 @@ output = proposer.propose_region(
     images_path=images_path, prompt=prompt, box_threshold=0.25, text_threshold=0.25
 )
 
-proposer.save_results(json_file=True, image_file=False, detections=output)
+proposer.save_results(json_file=True, image_file=True, detections=output)
