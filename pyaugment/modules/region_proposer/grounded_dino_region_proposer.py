@@ -64,14 +64,15 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         self.sam_ckpt_path = sam_ckpt_path
         self.sam_encoder_version = sam_encoder_version
 
-    def __reduce_bboxes(self, detections: Detections) -> Detections:
-        NMS_THRESHOLD = 0.8  ## TODO: find a better way to introduce this
+    def __reduce_bboxes(
+        self, detections: Detections, nms_threshold: float
+    ) -> Detections:
         print(f"Before NMS: {len(detections.xyxy)} boxes")
         nms_idx = (
             torchvision.ops.nms(
                 torch.from_numpy(detections.xyxy),
                 torch.from_numpy(detections.confidence),
-                NMS_THRESHOLD,
+                nms_threshold,
             )
             .numpy()
             .tolist()
@@ -172,11 +173,11 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         return detections
 
     def __reduce_bboxes_all(
-        self, detections: List[AnnotatedImage]
+        self, detections: List[AnnotatedImage], nms_threshold
     ) -> List[AnnotatedImage]:
         for image_detection in detections:
             image_detection.detections = self.__reduce_bboxes(
-                image_detection.detections
+                image_detection.detections, nms_threshold
             )
         return detections
 
@@ -187,6 +188,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         box_threshold: float = 0.3,
         text_threshold: float = 0.25,
         confidence_threshold: float = 0.3,
+        nms_threshold: float = 0.8,
     ) -> List[AnnotatedImage]:
         super().propose_region(images_path=images_path, prompt=prompt)
 
@@ -198,7 +200,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             confidence_threshold=confidence_threshold,
         )
         # non_max supression(nms)
-        detections_filtered = self.__reduce_bboxes_all(detections)
+        detections_filtered = self.__reduce_bboxes_all(detections, nms_threshold)
 
         detections_masks = self.__segment_objects_all(detections_filtered)
         return detections_masks
