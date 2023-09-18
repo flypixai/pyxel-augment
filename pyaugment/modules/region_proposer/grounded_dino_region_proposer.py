@@ -88,7 +88,6 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
     def __segment_objects(
         self, sam_predictor, image: numpy.ndarray, detections: numpy.ndarray
     ) -> Detections:
-        # segment
         sam_predictor.set_image(image)
         result_masks = []
         for box in detections.xyxy:
@@ -109,7 +108,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         confidence_threshold: float,
     ) -> List[AnnotatedImage]:
         images_files = Path(images_path).glob("*")
-        # load model
+
         grounding_dino_model = GDinoModel(
             model_config_path=self.gdino_config_path,
             model_checkpoint_path=self.gdino_ckpt_path,
@@ -148,7 +147,6 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             except:
                 continue
 
-        # unload model
         del grounding_dino_model
         torch.cuda.empty_cache()
 
@@ -157,7 +155,6 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
     def __segment_objects_all(
         self, detections: List[AnnotatedImage]
     ) -> List[AnnotatedImage]:
-        # load model
         sam = sam_model_registry[self.sam_encoder_version](
             checkpoint=self.sam_ckpt_path
         )
@@ -169,7 +166,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
                 image=image_detection.image_array,
                 detections=image_detection.detections,
             )
-        # unload model
+
         del sam
         torch.cuda.empty_cache()
         return detections
@@ -189,10 +186,10 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         prompt: list,
         box_threshold: float = 0.3,
         text_threshold: float = 0.25,
-        confidence_threshold: float = 0.8,
+        confidence_threshold: float = 0.3,
     ) -> List[AnnotatedImage]:
         super().propose_region(images_path=images_path, prompt=prompt)
-        # detect object
+
         detections = self.__detect_objects_all(
             images_path=images_path,
             classes=prompt,
@@ -202,6 +199,6 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
         )
         # non_max supression(nms)
         detections_filtered = self.__reduce_bboxes_all(detections)
-        # sam output
+
         detections_masks = self.__segment_objects_all(detections_filtered)
         return detections_masks

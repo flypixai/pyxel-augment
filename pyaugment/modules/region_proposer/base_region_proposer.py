@@ -39,8 +39,9 @@ class BaseRegionProposer(ABC):
                 pass
     """
 
+    @abstractmethod
     def __init__(self) -> None:
-        super().__init__()
+        pass
 
     @abstractmethod
     def propose_region(self, images_path: str, prompt) -> List[AnnotatedImage]:
