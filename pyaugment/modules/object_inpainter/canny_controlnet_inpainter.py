@@ -4,18 +4,23 @@ from typing import List, Optional, Tuple
 import cv2
 import numpy as np
 import torch
-from diffusers import (
-    ControlNetModel,
-    UniPCMultistepScheduler,
-)
+from diffusers import ControlNetModel, UniPCMultistepScheduler
 from diffusers.utils import load_image
 from PIL import Image
-from pyaugment.modules.utils.pipeline_stable_diffusion_controlnet_inpaint import StableDiffusionControlNetInpaintPipeline
 
 from pyaugment.modules.bbox_generator.base_bbox_generator import BBox
 from pyaugment.modules.object_inpainter.base_object_inpainter import BaseObjectInpainter
+from pyaugment.modules.utils.bbox_transforms import (
+    draw_rotated_bbox,
+    get_padded_outbounding_bbox,
+    get_vertex_coordinates,
+    transform_bbox_coordinates,
+)
+from pyaugment.modules.utils.pipeline_stable_diffusion_controlnet_inpaint import (
+    StableDiffusionControlNetInpaintPipeline,
+)
 
-MIN_PADDING = 3
+MIN_PADDING = 10
 
 
 class CannyControlNetObjectInpainter(BaseObjectInpainter):
@@ -39,25 +44,22 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
 
     def inpaint_object(
         self,
-        background_image: np.ndarray,
-        image_condition: np.ndarray,
+        background_image_path: str,
+        image_condition_path: str,
         text_condition: str,
         bbox: BBox,
         num_inference_steps: Optional[int] = 30,
         controlnet_conditioning_scale: Optional[float] = 0.8,
     ) -> np.ndarray:
+        background_image = load_image(background_image_path)
+        image_condition = load_image(image_condition_path)
+
         (
             mask_image,
             canny_image,
             context_image,
             context_bbox,
         ) = self._get_controlnet_inputs(background_image, image_condition, bbox)
-
-        print("Types: ", type(mask_image), type(canny_image), type(context_image))
-
-        mask_image.save("test_mask.jpg")
-        canny_image.save("test_canny.jpg")
-        context_image.save("test_context.jpg")
 
         generated_image = self.pipe(
             text_condition,
@@ -70,113 +72,57 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         ).images[0]
 
         final_image = self._resize_and_paste(
-            context_bbox, generated_image, Image.fromarray(background_image)
+            context_bbox, generated_image, background_image
         )
 
         return final_image
 
     def _get_controlnet_inputs(
-        self, background_image: np.ndarray, canny_image: np.ndarray, bbox: BBox
+        self, background_image: Image, canny_image: Image, bbox: BBox
     ):
-        rotated_bbox = self._get_rotated_bbox(
+        bbox_vertices = get_vertex_coordinates(
             bbox.x_center, bbox.y_center, bbox.width, bbox.height, bbox.alpha
         )
-        bbox_xyxy = self._get_bbox(rotated_bbox)
-
-        context_bbox = self._get_context_bbox(bbox_xyxy)
-        relative_bbox = self._get_relative_position(rotated_bbox, context_bbox)
-        mask_image = self._draw_rotated_bbox(relative_bbox)
+        context_bbox = get_padded_outbounding_bbox(bbox_vertices, MIN_PADDING)
+        relative_bbox = transform_bbox_coordinates(
+            bbox=bbox_vertices, new_coordinates_system=context_bbox
+        )
+        mask_image = draw_rotated_bbox(relative_bbox, background_image.size)
         context_image = self._crop_and_resize(background_image, context_bbox)
-        canny_image = self._rotate_and_center(Image.fromarray(canny_image), 
-                                              angle_degrees=bbox.alpha, 
-                                              height= bbox.height, 
-                                              context_bbox= context_bbox)
+        canny_image = self._rotate_and_center(
+            canny_image,
+            targe_image_side_length=context_image.size[0],
+            angle_degrees=bbox.alpha,
+            height=bbox.height,
+            context_bbox=context_bbox,
+        )
 
         return mask_image, canny_image, context_image, context_bbox
-    
 
-    def _get_rotated_bbox(
-        self,
-        x_center: float,
-        y_center: float,
-        width: float,
-        height: float,
-        angle_degrees: float,
-    ) -> List[Tuple[float]]:
-        angle_radians = math.radians(angle_degrees)
-        cos_theta = math.cos(angle_radians)
-        sin_theta = math.sin(angle_radians)
-
-        half_width = width / 2
-        half_height = height / 2
-
-        x1 = int(x_center + half_width * cos_theta - half_height * sin_theta)
-        y1 = int(y_center + half_width * sin_theta + half_height * cos_theta)
-
-        x2 = int(x_center + half_width * cos_theta + half_height * sin_theta)
-        y2 = int(y_center + half_width * sin_theta - half_height * cos_theta)
-
-        x3 = int(x_center - half_width * cos_theta + half_height * sin_theta)
-        y3 = int(y_center - half_width * sin_theta - half_height * cos_theta)
-
-        x4 = int(x_center - half_width * cos_theta - half_height * sin_theta)
-        y4 = int(y_center - half_width * sin_theta + half_height * cos_theta)
-
-        return (x1, y1), (x2, y2), (x3, y3), (x4, y4)
-
-    def _get_bbox(self, rotated_bbox: List[Tuple[float]]) -> Tuple[float]:
-        x_coords, y_coords = zip(*rotated_bbox)
-        x_min = min(x_coords)
-        x_max = max(x_coords)
-        y_min = min(y_coords)
-        y_max = max(y_coords)
-        return (x_min, y_min, x_max, y_max)
-
-    def _get_relative_position(self, 
-        rotated_bbox: List[Tuple[float]], bbox_inpainting: Tuple[float]
-    ) -> List[Tuple[float]]:
-        x_offset, y_offset, _, _ = bbox_inpainting
-        rotated_bbox_transformed = [
-            (x[0] - x_offset, x[1] - y_offset) for x in rotated_bbox
-        ]
-        width = bbox_inpainting[2] - bbox_inpainting[0]
-        height = bbox_inpainting[3] - bbox_inpainting[1]
-        rotated_bbox_relative = [
-            (x[0] * 512 // width, x[1] * 512 // height)
-            for x in rotated_bbox_transformed
-        ]
-        return rotated_bbox_relative
-
-    def _resize_and_paste(self, bbox, generated_image, background_image):
+    def _resize_and_paste(
+        self, bbox: Tuple, generated_image: Image, background_image: Image
+    ) -> Image:
         x_min, y_min, x_max, y_max = bbox
         desired_size = (x_max - x_min, y_max - y_min)
         resized_image = generated_image.resize(desired_size)
         background_image.paste(resized_image, (x_min, y_min, x_max, y_max))
         return background_image
 
-    def _crop_and_resize(self, image, bbox):
-        image = Image.fromarray(image)
+    def _crop_and_resize(self, image: Image, bbox):
         cropped_image = image.crop(bbox)
         resized_image = cropped_image.resize((512, 512))
         return resized_image
 
-    def _resize_and_paste(self, bbox, generated_image, background_image):
-        x_min, y_min, x_max, y_max = bbox
-        desired_size = (x_max - x_min, y_max - y_min)
-        resized_image = generated_image.resize(desired_size)
-        background_image.paste(resized_image, (x_min, y_min, x_max, y_max))
-        return background_image
-
-    def _draw_rotated_bbox(self, points) -> Image:
-        image_bbox = np.zeros((512, 512, 3), dtype=np.uint8)
-        cv2.drawContours(image_bbox, [np.array(points)], 0, (255, 255, 255), -1)
-        image_bbox = Image.fromarray(image_bbox)
-        return image_bbox
-
-    def _rotate_and_center(self, image, angle_degrees, height, context_bbox):
-        factor = 512 // round(context_bbox[2] - context_bbox[0])
+    def _rotate_and_center(
+        self,
+        image: Image,
+        targe_image_side_length: int,
+        angle_degrees: float,
+        height: int,
+        context_bbox: Tuple[float],
+    ):
+        factor = targe_image_side_length // round(context_bbox[2] - context_bbox[0])
         desired_height = height * factor
-        print("IMAGE SIZE: ", type(image))
         original_width, original_height = image.size
         aspect_ratio = original_width / original_height
 
@@ -184,10 +130,12 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         image_resized = image.resize((desired_width, desired_height))
 
         background_color = (0, 0, 0)
-        background = Image.new("RGB", (512, 512), background_color)
+        background = Image.new(
+            "RGB", (targe_image_side_length, targe_image_side_length), background_color
+        )
 
-        x_offset = (512 - image_resized.width) // 2
-        y_offset = (512 - image_resized.height) // 2
+        x_offset = (targe_image_side_length - image_resized.width) // 2
+        y_offset = (targe_image_side_length - image_resized.height) // 2
 
         background.paste(image_resized, (x_offset, y_offset))
 
@@ -202,34 +150,3 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         rotated_image = Image.fromarray(rotated_image)
 
         return rotated_image
-
-    def _get_bbox_from_label(image_path):
-        label_path = image_path.replace("images", "labels")[:-3] + "txt"
-        bboxes = []
-        with open(label_path, "r") as file:
-            for line in file:
-                values = [int(float(val)) for val in line.strip().split()]
-                bbox = values[1:]
-                bbox.append(0)
-                bboxes.append(bbox)
-        return bboxes
-    def _get_context_bbox(self, bbox): 
-        x_min, y_min, x_max, y_max = bbox
-
-        x_min -= MIN_PADDING
-        y_min -= MIN_PADDING
-        x_max += MIN_PADDING
-        y_max += MIN_PADDING
-
-        width = x_max - x_min
-        height = y_max - y_min
-
-        diff = width - height
-        if diff > 0:
-            y_min -= diff // 2
-            y_max += diff // 2
-        else:
-            x_min -= abs(diff) // 2
-            x_max += abs(diff) // 2
-
-        return (x_min, y_min, x_max, y_max)
