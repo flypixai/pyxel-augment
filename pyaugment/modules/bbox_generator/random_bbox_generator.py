@@ -1,7 +1,9 @@
 import random
+from typing import List
 
-import cv2
 import numpy
+from shapely import MultiPolygon, Polygon, buffer
+from skimage import measure
 from supervision.detection.core import Detections
 
 from pyaugment.modules.bbox_generator.base_bbox_generator import BaseBBoxGenerator, BBox
@@ -12,37 +14,20 @@ class RandomBBoxGenerator(BaseBBoxGenerator):
     def generate_bbox(
         self, proposed_region: Detections, object_size: ObjectSize
     ) -> BBox:
-        proposed_region_bbox = proposed_region.xyxy[0]
         proposed_region_segmentation = proposed_region.mask[0]
 
-        x_start = proposed_region_bbox[0] + object_size.width // 2
-        y_start = proposed_region_bbox[1] + object_size.height // 2
+        contours = self._get_segmentation_contour(proposed_region_segmentation)
 
-        x_end = proposed_region_bbox[2] - object_size.width // 2
-        y_end = proposed_region_bbox[3] - object_size.height // 2
+        buffer_threshold = numpy.hypot(object_size.height, object_size.width) / 2
 
-        bbox_found = False
+        inner_contours = self._get_inner_segmentation_contour(
+            contours, buffer_threshold
+        )
 
-        while bbox_found == False:
-            x_center = random.randint(int(x_start), int(x_end))
-            y_center = random.randint(int(y_start), int(y_end))
-
-            bbox_image = numpy.zeros_like(proposed_region_segmentation, dtype=bool)
-            bbox_image[
-                int(y_center - object_size.height // 2) : int(
-                    y_center + object_size.height // 2
-                ),
-                int(x_center - object_size.width // 2) : int(
-                    x_center + object_size.width // 2
-                ),
-            ] = True
-
-            intersection = proposed_region_segmentation & bbox_image
-
-            if numpy.count_nonzero(intersection) == numpy.count_nonzero(bbox_image):
-                bbox_found = True
-            else:
-                print("Sampled bbox out of segmented area, trying again...")
+        (
+            x_center,
+            y_center,
+        ) = random.choice(inner_contours[0])
 
         bbox = BBox(
             x_center=x_center,
@@ -50,4 +35,38 @@ class RandomBBoxGenerator(BaseBBoxGenerator):
             height=object_size.height,
             width=object_size.width,
         )
-        return bbox
+        return bbox, inner_contours
+
+    def _get_segmentation_contour(
+        self,
+        segmentation: numpy.ndarray,
+    ) -> List[Polygon]:
+        contours = measure.find_contours(segmentation.astype(int), 0.5)
+        contours_as_polygons = [Polygon(contour) for contour in contours]
+        return contours_as_polygons
+
+    def _get_inner_segmentation_contour(
+        self, contours: List[Polygon], buffer_threshold: float
+    ) -> List[numpy.ndarray]:
+        new_contours = []
+        for contour in contours:
+            new_contour = buffer(
+                contour, -buffer_threshold, cap_style="flat", join_style="bevel"
+            )
+            new_contour = new_contour.simplify(0.5)
+
+            if isinstance(new_contour, Polygon):
+                new_contour = MultiPolygon([new_contour])
+
+            for polygon_part in new_contour.geoms:
+                new_contour_coordinates = numpy.array(polygon_part.exterior.coords)
+                if not new_contour.is_empty:
+                    new_contour_coordinates = new_contour_coordinates[
+                        :,
+                        [
+                            1,
+                            0,
+                        ],  ## TODO: look deeper into this, why/when should we switch coordinates
+                    ]
+                    new_contours.append(new_contour_coordinates)
+        return new_contours
