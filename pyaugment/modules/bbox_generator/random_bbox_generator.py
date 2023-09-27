@@ -34,6 +34,7 @@ class RandomBBoxGenerator(BaseBBoxGenerator):
             y_center=y_center,
             height=object_size.height,
             width=object_size.width,
+            alpha=int(random.uniform(0, 180)),
         )
         return bbox, inner_contours
 
@@ -41,7 +42,9 @@ class RandomBBoxGenerator(BaseBBoxGenerator):
         self,
         segmentation: numpy.ndarray,
     ) -> List[Polygon]:
-        contours = measure.find_contours(segmentation.astype(int), 0.5)
+        segmentation_bordered = numpy.zeros(segmentation.shape, dtype=numpy.uint8)
+        segmentation_bordered[1:-1, 1:-1] = segmentation[1:-1, 1:-1]
+        contours = measure.find_contours(segmentation_bordered.astype(int), 0.5)
         contours_as_polygons = [Polygon(contour) for contour in contours]
         return contours_as_polygons
 
