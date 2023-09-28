@@ -97,7 +97,7 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             )
             index = numpy.argmax(scores)
             result_masks.append(masks[index])
-            detections.mask = numpy.array(result_masks)
+        detections.mask = numpy.array(result_masks)
         return detections
 
     def __detect_objects_all(
@@ -199,7 +199,6 @@ class GroundedSAMRegionProposer(BaseRegionProposer):
             text_threshold=text_threshold,
             confidence_threshold=confidence_threshold,
         )
-        # non_max supression(nms)
         detections_filtered = self.__reduce_bboxes_all(detections, nms_threshold)
 
         detections_masks = self.__segment_objects_all(detections_filtered)

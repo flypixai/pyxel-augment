@@ -11,7 +11,7 @@ from supervision.detection.core import Detections
 @dataclass
 class AnnotatedImage:
     file_name: str
-    image_array: numpy.ndarray
+    image_array: Optional[numpy.ndarray] = None
     detections: Optional[Detections] = None
 
 
