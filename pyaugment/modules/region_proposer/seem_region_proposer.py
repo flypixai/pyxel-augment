@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
+from skimage.transform import resize
 from supervision.detection.core import Detections
 from torchvision import transforms
 
@@ -78,8 +79,7 @@ class SEEMRegionProposer(BaseRegionProposer):
                 image=image,
                 reftxt=cat,
             )
-            # TODO: adjust that not going between Image and numpy back and forth
-            output = output.resize(image.size)
+            output = resize(output, image.size, anti_aliasing=True)
             class_id = self.object_categories[cat[:-1]]
             masks[i, :, :] = np.array(output)[:, :]
             classes[i] = class_id
@@ -92,7 +92,7 @@ class SEEMRegionProposer(BaseRegionProposer):
 
         return detections
 
-    def _infere_mask(self, image, reftxt: str):
+    def _infere_mask(self, image: Image, reftxt: str) -> np.ndarray:
         image_ori = self.input_transform(image)
         width = image_ori.size[0]
         height = image_ori.size[1]
@@ -133,4 +133,4 @@ class SEEMRegionProposer(BaseRegionProposer):
         )
         torch.cuda.empty_cache()
         image = np.squeeze(pred_masks_pos * 255, axis=0)
-        return Image.fromarray(image.astype(np.uint8))
+        return image
