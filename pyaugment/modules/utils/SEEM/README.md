@@ -1,0 +1,1 @@
+The content of the folder was copied and adapted from [Original Repository](https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once/tree/main).

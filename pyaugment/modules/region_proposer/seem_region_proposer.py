@@ -10,19 +10,16 @@ from skimage.transform import resize
 from supervision.detection.core import Detections
 from torchvision import transforms
 
-## TODO: find a better solution for this
-sys.path.append("/home/ubuntu/Segment-Everything-Everywhere-All-At-Once/demo_code")
-from utils.arguments import load_opt_from_config_files
-from utils.constants import COCO_PANOPTIC_CLASSES
-from utils.distributed import init_distributed
-from xdecoder import build_model
-from xdecoder.BaseModel import BaseModel
-from xdecoder.language.loss import vl_similarity
-
 from pyaugment.modules.region_proposer.base_region_proposer import (
     AnnotatedImage,
     BaseRegionProposer,
 )
+from pyaugment.modules.utils.SEEM.utils.arguments import load_opt_from_config_files
+from pyaugment.modules.utils.SEEM.utils.constants import COCO_PANOPTIC_CLASSES
+from pyaugment.modules.utils.SEEM.utils.distributed import init_distributed
+from pyaugment.modules.utils.SEEM.xdecoder import build_model
+from pyaugment.modules.utils.SEEM.xdecoder.BaseModel import BaseModel
+from pyaugment.modules.utils.SEEM.xdecoder.language.loss import vl_similarity
 
 
 class SEEMRegionProposer(BaseRegionProposer):
