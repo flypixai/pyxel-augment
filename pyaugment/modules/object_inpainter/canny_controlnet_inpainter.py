@@ -54,50 +54,43 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         background_image = load_image(background_image_path)
         image_condition = load_image(image_condition_path)
 
-        (
-            mask_image,
-            canny_image,
-            context_image,
-            context_bbox,
-        ) = self._get_controlnet_inputs(background_image, image_condition, bbox)
+        self._update_controlnet_inputs(background_image, image_condition, bbox)
 
         generated_image = self.pipe(
             text_condition,
             num_inference_steps=num_inference_steps,
-            image=context_image,
-            control_image=canny_image,
+            image=self.context_image,
+            control_image=self.canny_image,
             controlnet_conditioning_scale=controlnet_conditioning_scale,
-            mask_image=mask_image,
+            mask_image=self.mask_image,
             num_images_per_prompt=1,
         ).images[0]
 
         final_image = self._resize_and_paste(
-            context_bbox, generated_image, background_image
+            self.context_bbox, generated_image, background_image
         )
 
         return final_image
 
-    def _get_controlnet_inputs(
-        self, background_image: Image, canny_image: Image, bbox: RBBox
+    def _update_controlnet_inputs(
+        self, background_image: Image, canny_image_origin: Image, bbox: RBBox
     ):
         bbox_vertices = get_vertex_coordinates(
             bbox.x_center, bbox.y_center, bbox.width, bbox.height, bbox.alpha
         )
-        context_bbox = get_padded_outbounding_bbox(bbox_vertices, MIN_PADDING)
+        self.context_bbox = get_padded_outbounding_bbox(bbox_vertices, MIN_PADDING)
         relative_bbox = transform_bbox_coordinates(
-            bbox=bbox_vertices, new_coordinates_system=context_bbox
+            bbox=bbox_vertices, new_coordinates_system=self.context_bbox
         )
-        mask_image = draw_rotated_bbox(relative_bbox, background_image.size)
-        context_image = self._crop_and_resize(background_image, context_bbox)
-        canny_image = self._rotate_and_center(
-            canny_image,
-            targe_image_side_length=context_image.size[0],
+        self.mask_image = draw_rotated_bbox(relative_bbox, background_image.size)
+        self.context_image = self._crop_and_resize(background_image, self.context_bbox)
+        self.canny_image = self._rotate_and_center(
+            canny_image_origin,
+            targe_image_side_length=self.context_image.size[0],
             angle_degrees=bbox.alpha,
             height=bbox.height,
-            context_bbox=context_bbox,
+            context_bbox=self.context_bbox,
         )
-
-        return mask_image, canny_image, context_image, context_bbox
 
     def _resize_and_paste(
         self, bbox: Tuple, generated_image: Image, background_image: Image
