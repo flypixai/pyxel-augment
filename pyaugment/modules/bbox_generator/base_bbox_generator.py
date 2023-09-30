@@ -9,7 +9,7 @@ from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 
 @dataclass
-class BBox:
+class RBBox:
     x_center: float
     y_center: float
     height: float
@@ -21,5 +21,5 @@ class BaseBBoxGenerator(ABC):
     @abstractmethod
     def generate_bbox(
         self, proposed_region: Detections, object_size: ObjectSize
-    ) -> BBox:
+    ) -> RBBox:
         pass

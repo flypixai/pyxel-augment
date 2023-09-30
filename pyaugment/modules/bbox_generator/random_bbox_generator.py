@@ -6,14 +6,17 @@ from shapely import MultiPolygon, Polygon, buffer
 from skimage import measure
 from supervision.detection.core import Detections
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import BaseBBoxGenerator, BBox
+from pyaugment.modules.bbox_generator.base_bbox_generator import (
+    BaseBBoxGenerator,
+    RBBox,
+)
 from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 
 class RandomBBoxGenerator(BaseBBoxGenerator):
     def generate_bbox(
         self, proposed_region: Detections, object_size: ObjectSize
-    ) -> BBox:
+    ) -> RBBox:
         proposed_region_segmentation = proposed_region.mask[0]
 
         contours = self._get_segmentation_contour(proposed_region_segmentation)
@@ -29,7 +32,7 @@ class RandomBBoxGenerator(BaseBBoxGenerator):
             y_center,
         ) = random.choice(inner_contours[0])
 
-        bbox = BBox(
+        bbox = RBBox(
             x_center=x_center,
             y_center=y_center,
             height=object_size.height,
