@@ -64,22 +64,24 @@ def get_padded_outbounding_bbox(
 
 def transform_bbox_coordinates(
     bbox: List[Tuple[float]], new_coordinates_system: Tuple[float]
-) -> List[Tuple[float]]:
+) -> np.array:
     x_offset, y_offset, x_max, y_max = new_coordinates_system
 
-    width = x_max - x_offset
-    height = y_max - y_offset
+    size = np.array([x_max - x_offset, y_max - y_offset])
+    offset = np.array([x_offset, y_offset])
 
-    bbox_transformed = [
-        ((x[0] - x_offset) * 512 // width, (x[1] - y_offset) * 512 // height)
-        for x in bbox
-    ]
+    bbox_np = np.array(bbox)
 
-    return bbox_transformed
+    bbox_transformed_normalized = (bbox_np - offset) / size
+
+    return bbox_transformed_normalized
 
 
-def draw_rotated_bbox(points: List[Tuple[float]], image_size: tuple) -> Image:
-    image_bbox = np.zeros((512, 512, 3), dtype=np.uint8)
-    cv2.drawContours(image_bbox, [np.array(points)], 0, (255, 255, 255), -1)
+def draw_rotated_bbox(points: np.array, image_size: tuple) -> Image:
+    image_bbox = np.zeros(image_size, dtype=np.uint8)
+    points_denormalized = (points * np.array([image_size[0], image_size[1]])).astype(
+        np.int32
+    )
+    cv2.drawContours(image_bbox, points_denormalized, 0, (255, 255, 255), -1)
     image_bbox = Image.fromarray(image_bbox)
     return image_bbox
