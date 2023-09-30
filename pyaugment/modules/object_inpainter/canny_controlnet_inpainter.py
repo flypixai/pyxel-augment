@@ -8,7 +8,7 @@ from diffusers import ControlNetModel, UniPCMultistepScheduler
 from diffusers.utils import load_image
 from PIL import Image
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import BBox
+from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
 from pyaugment.modules.object_inpainter.base_object_inpainter import BaseObjectInpainter
 from pyaugment.modules.utils.bbox_transforms import (
     draw_rotated_bbox,
@@ -47,7 +47,7 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         background_image_path: str,
         image_condition_path: str,
         text_condition: str,
-        bbox: BBox,
+        bbox: RBBox,
         num_inference_steps: Optional[int] = 30,
         controlnet_conditioning_scale: Optional[float] = 0.8,
     ) -> np.ndarray:
@@ -78,7 +78,7 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         return final_image
 
     def _get_controlnet_inputs(
-        self, background_image: Image, canny_image: Image, bbox: BBox
+        self, background_image: Image, canny_image: Image, bbox: RBBox
     ):
         bbox_vertices = get_vertex_coordinates(
             bbox.x_center, bbox.y_center, bbox.width, bbox.height, bbox.alpha

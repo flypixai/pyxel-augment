@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import BBox
+from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
 
 
 class BaseObjectInpainter(ABC):
@@ -15,7 +15,7 @@ class BaseObjectInpainter(ABC):
     def inpaint_object(
         self,
         background_image: numpy.ndarray,
-        bbox: BBox,
+        bbox: RBBox,
         text_condition: Optional[str] = None,
         image_condition: Optional[numpy.ndarray] = None,
     ) -> numpy.ndarray:
