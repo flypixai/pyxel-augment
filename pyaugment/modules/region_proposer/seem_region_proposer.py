@@ -24,6 +24,13 @@ from pyaugment.modules.utils.SEEM.xdecoder.language.loss import vl_similarity
 
 class SEEMRegionProposer(BaseRegionProposer):
     def __init__(self, config_file_path: str) -> None:
+        if not torch.cuda.is_available():
+            print(
+                "ERROR: GPU resources are not available "
+                "Please to ensure that a compatible GPU is installed "
+                "and properly configured to use SEEMRegionproposer"
+            )
+            return None
         opt = load_opt_from_config_files(config_file_path)
         opt = init_distributed(opt)
         if "focalt" in config_file_path:
