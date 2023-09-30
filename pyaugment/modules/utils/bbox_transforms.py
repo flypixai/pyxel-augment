@@ -82,6 +82,6 @@ def draw_rotated_bbox(points: np.array, image_size: tuple) -> Image:
     points_denormalized = (points * np.array([image_size[0], image_size[1]])).astype(
         np.int32
     )
-    cv2.drawContours(image_bbox, points_denormalized, 0, (255, 255, 255), -1)
+    cv2.drawContours(image_bbox, [points_denormalized], 0, (255, 255, 255), -1)
     image_bbox = Image.fromarray(image_bbox)
     return image_bbox
