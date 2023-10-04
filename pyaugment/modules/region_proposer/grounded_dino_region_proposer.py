@@ -5,9 +5,6 @@ import cv2
 import numpy
 import torch
 import torchvision
-
-# TODO: Installing the next two is from source, running this necessiates
-# cloning grounded_segment_anything, is there a better way of doing this?
 from groundingdino.util.inference import Model as GDinoModel
 from segment_anything import SamPredictor, sam_model_registry
 from supervision.detection.core import Detections
