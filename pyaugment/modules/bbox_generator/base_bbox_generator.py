@@ -17,7 +17,7 @@ class RBBox:
     alpha: Optional[float] = 0.0
 
 
-class BaseBBoxGenerator(ABC):
+class BaseRBBoxGenerator(ABC):
     @abstractmethod
     def generate_bbox(
         self, proposed_region: Detections, object_size: ObjectSize
