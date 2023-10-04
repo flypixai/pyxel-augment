@@ -7,13 +7,13 @@ from skimage import measure
 from supervision.detection.core import Detections
 
 from pyaugment.modules.bbox_generator.base_bbox_generator import (
-    BaseBBoxGenerator,
+    BaseRBBoxGenerator,
     RBBox,
 )
 from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 
-class RandomBBoxGenerator(BaseBBoxGenerator):
+class RandomBBoxGenerator(BaseRBBoxGenerator):
     def generate_bbox(
         self, proposed_region: Detections, object_size: ObjectSize
     ) -> RBBox:
@@ -59,6 +59,7 @@ class RandomBBoxGenerator(BaseBBoxGenerator):
             new_contour = buffer(
                 contour, -buffer_threshold, cap_style="flat", join_style="bevel"
             )
+            # TODO: find a way to avoid hardcoding 0.5
             new_contour = new_contour.simplify(0.5)
 
             if isinstance(new_contour, Polygon):
