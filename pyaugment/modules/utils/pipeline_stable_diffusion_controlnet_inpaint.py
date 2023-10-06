@@ -15,7 +15,7 @@
 # TODO: this work was copied from this repo: https://github.com/mikonvergence/ControlNetInpaint
 # How to cite it properly?
 
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import PIL.Image
