@@ -56,7 +56,7 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
 
         final_images = []
         for image in background_images:
-            background_image = Image.open(image)
+            background_image = Image.open(image.image_array)
             background_image = load_image(background_image)
             self._update_controlnet_inputs(background_image, image_condition, bbox)
 
