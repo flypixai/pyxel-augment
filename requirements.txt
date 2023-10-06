@@ -47,3 +47,5 @@ litellm
 segment_anything
 groundingdino-py
 accelerate
+kornia
+git+https://github.com/facebookresearch/detectron2
