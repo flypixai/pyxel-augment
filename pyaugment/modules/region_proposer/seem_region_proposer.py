@@ -34,9 +34,9 @@ class SEEMRegionProposer(BaseRegionProposer):
         opt = load_opt_from_config_files(config_file_path)
         opt = init_distributed(opt)
         if "focalt" in config_file_path:
-            pretrained_pth = Path(config_file_path.parent) / "seem_focalt_v2.pt"
+            pretrained_pth = Path(config_file_path).parent / "seem_focalt_v1.pt"
         elif "focal" in config_file_path:
-            pretrained_pth = Path(config_file_path.parent) / "seem_focall_v1.pt"
+            pretrained_pth = Path(config_file_path).parent / "seem_focall_v0.pt"
         self.model = (
             BaseModel(opt, build_model(opt))
             .from_pretrained(pretrained_pth)
