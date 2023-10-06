@@ -10,36 +10,40 @@ from pyaugment.modules.bbox_generator.base_bbox_generator import (
     BaseRBBoxGenerator,
     RBBox,
 )
+from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 
 class RandomRBBoxGenerator(BaseRBBoxGenerator):
     def generate_bbox(
-        self, proposed_region: Detections, object_size: ObjectSize
+        self, proposed_regions: List[AnnotatedImage], object_size: ObjectSize
     ) -> RBBox:
-        proposed_region_segmentation = proposed_region.mask[0]
+        bboxes = []
+        for proposed_region in proposed_regions:
+            proposed_region_segmentation = proposed_region.detections.mask[0]
 
-        contours = self._get_segmentation_contour(proposed_region_segmentation)
+            contours = self._get_segmentation_contour(proposed_region_segmentation)
 
-        buffer_threshold = numpy.hypot(object_size.height, object_size.width) / 2
+            buffer_threshold = numpy.hypot(object_size.height, object_size.width) / 2
 
-        inner_contours = self._get_inner_segmentation_contour(
-            contours, buffer_threshold
-        )
+            inner_contours = self._get_inner_segmentation_contour(
+                contours, buffer_threshold
+            )
 
-        (
-            x_center,
-            y_center,
-        ) = random.choice(inner_contours[0])
+            (
+                x_center,
+                y_center,
+            ) = random.choice(inner_contours[0])
 
-        bbox = RBBox(
-            x_center=x_center,
-            y_center=y_center,
-            height=object_size.height,
-            width=object_size.width,
-            alpha=int(random.uniform(0, 180)),
-        )
-        return bbox
+            bbox = RBBox(
+                x_center=x_center,
+                y_center=y_center,
+                height=object_size.height,
+                width=object_size.width,
+                alpha=int(random.uniform(0, 180)),
+            )
+            bboxes.append(bbox)
+        return bboxes
 
     def _get_segmentation_contour(
         self,

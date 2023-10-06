@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import numpy
 from supervision.detection.core import Detections
 
+from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 
@@ -20,6 +21,6 @@ class RBBox:
 class BaseRBBoxGenerator(ABC):
     @abstractmethod
     def generate_bbox(
-        self, proposed_region: Detections, object_size: ObjectSize
-    ) -> RBBox:
+        self, proposed_regions: List[AnnotatedImage], object_size: ObjectSize
+    ) -> List[RBBox]:
         pass
