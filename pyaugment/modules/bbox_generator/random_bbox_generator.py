@@ -39,7 +39,7 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
             width=object_size.width,
             alpha=int(random.uniform(0, 180)),
         )
-        return bbox, inner_contours
+        return bbox
 
     def _get_segmentation_contour(
         self,
