@@ -48,4 +48,4 @@ segment_anything
 groundingdino-py
 accelerate
 kornia
-git+https://github.com/facebookresearch/detectron2
+detectron2 @ git+https://github.com/facebookresearch/detectron2@4e80df1
