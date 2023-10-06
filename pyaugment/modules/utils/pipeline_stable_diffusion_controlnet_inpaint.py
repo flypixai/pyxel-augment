@@ -15,6 +15,8 @@
 # TODO: this work was copied from this repo: https://github.com/mikonvergence/ControlNetInpaint
 # How to cite it properly?
 
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 import PIL.Image
 import torch
@@ -233,7 +235,6 @@ class StableDiffusionControlNetInpaintPipeline(StableDiffusionControlNetPipeline
         return mask, masked_image_latents
 
     @torch.no_grad()
-    @replace_example_docstring(EXAMPLE_DOC_STRING)
     def __call__(
         self,
         prompt: Union[str, List[str]] = None,
