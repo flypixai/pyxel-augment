@@ -55,10 +55,12 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         image_condition = load_image(image_condition_path)
 
         final_images = []
-        for image in background_images:
+        for index, image in enumerate(background_images):
             background_image = Image.open(image.image_array)
             background_image = load_image(background_image)
-            self._update_controlnet_inputs(background_image, image_condition, bbox)
+            self._update_controlnet_inputs(
+                background_image, image_condition, bbox[index]
+            )
 
             generated_image = self.pipe(
                 text_condition,
