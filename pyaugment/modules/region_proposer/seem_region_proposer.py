@@ -68,7 +68,7 @@ class SEEMRegionProposer(BaseRegionProposer):
         annotated_images = []
         for image in image_list:
             detections = self._get_detections(image, prompt)
-            image_array = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB)
+            image_array = cv2.cvtColor(cv2.imread(str(image)), cv2.COLOR_BGR2RGB)
             annotated_image = AnnotatedImage(
                 file_name=image, detections=detections, image_array=image_array
             )
