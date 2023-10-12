@@ -63,11 +63,13 @@ class SEEMRegionProposer(BaseRegionProposer):
     ) -> List[AnnotatedImage]:
         super().propose_region(images_path=images_path, prompt=prompt)
         prompt = [c + "." for c in prompt]
-
-        image_list = Path(images_path).glob("*")
+        images_path = Path(images_path)
+        image_list = images_path.glob("*")
         annotated_images = []
         for image in image_list:
             detections = self._get_detections(image, prompt)
+            if detections is None:
+                continue
             image_array = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB)
             annotated_image = AnnotatedImage(
                 file_name=image, detections=detections, image_array=image_array
@@ -91,6 +93,12 @@ class SEEMRegionProposer(BaseRegionProposer):
             masks[i, :, :] = np.array(output)[:, :]
             classes[i] = class_id
         xyxy = np.zeros((len(prompt), 4))
+
+        mask_is_empty = (masks == np.zeros(shape=masks.shape)).all()
+
+        if mask_is_empty:
+            return None
+
         detections = Detections(
             xyxy=xyxy,
             mask=masks.astype(np.uint8),
