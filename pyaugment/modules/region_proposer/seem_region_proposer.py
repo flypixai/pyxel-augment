@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import List
 
-import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -70,7 +69,7 @@ class SEEMRegionProposer(BaseRegionProposer):
             detections = self._get_detections(image, prompt)
             if detections is None:
                 continue
-            image_array = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB)
+            image_array = np.asarray(Image.open(image))
             annotated_image = AnnotatedImage(
                 file_name=image, detections=detections, image_array=image_array
             )
