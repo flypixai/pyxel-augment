@@ -5,6 +5,7 @@ from typing import List, Optional
 
 import cv2
 import numpy
+from PIL import Image
 from supervision.detection.core import Detections
 
 
@@ -88,10 +89,13 @@ class BaseRegionProposer(ABC):
             try:
                 for img_detect in detections:
                     for i, segmentation in enumerate(img_detect.detections.mask):
-                        segmentation_image = numpy.uint8(segmentation) * 255
-                        cv2.imwrite(
-                            img_detect.file_name[:-4] + f"_{i}.jpg", segmentation_image
+                        image = Image.fromarray(segmentation)
+                        image.save(
+                            "segmentation/"
+                            + str(img_detect.file_name.name)[:-4]
+                            + f"_{i}.jpg"
                         )
+
             except:
                 print(
                     f"Image {img_detect.file_name} doesn't contain {self.object_categories.keys}"
