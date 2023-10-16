@@ -30,10 +30,14 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
                 contours, buffer_threshold
             )
 
-            (
-                x_center,
-                y_center,
-            ) = random.choice(inner_contours[0])
+            try:
+                (
+                    x_center,
+                    y_center,
+                ) = random.choice(inner_contours[0])
+            except:
+                print(f"{proposed_region.file_name} skipped")
+                continue
 
             bbox = RBBox(
                 x_center=x_center,

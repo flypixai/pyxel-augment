@@ -48,20 +48,17 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         background_images: List[AnnotatedImage],
         image_condition_path: str,
         text_condition: str,
-        bbox: List[RBBox],
+        bboxes: List[RBBox],
         num_inference_steps: Optional[int] = 30,
         controlnet_conditioning_scale: Optional[float] = 0.8,
     ) -> List[np.ndarray]:
         image_condition = load_image(image_condition_path)
 
         final_images = []
-        for index, image in enumerate(background_images):
-            background_image = Image.fromarray(image.image_array)
+        for index, bbox in enumerate(bboxes):
+            background_image = Image.fromarray(background_images[index].image_array)
             background_image = load_image(background_image)
-            self._update_controlnet_inputs(
-                background_image, image_condition, bbox[index]
-            )
-
+            self._update_controlnet_inputs(background_image, image_condition, bbox)
             generated_image = self.pipe(
                 text_condition,
                 num_inference_steps=num_inference_steps,
