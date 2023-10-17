@@ -1,6 +1,7 @@
 import random
 from typing import List
 
+import cv2
 import numpy
 from shapely import MultiPolygon, Polygon, buffer
 from skimage import measure
@@ -16,38 +17,58 @@ from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 class RandomRBBoxGenerator(BaseRBBoxGenerator):
     def generate_bbox(
-        self, proposed_regions: List[AnnotatedImage], object_size: ObjectSize
+        self,
+        proposed_regions: List[AnnotatedImage],
+        object_size: ObjectSize,
+        num_objects: int,
     ) -> RBBox:
         bboxes = []
         for proposed_region in proposed_regions:
+            bboxes_per_image = []
             proposed_region_segmentation = proposed_region.detections.mask[0]
 
-            contours = self._get_segmentation_contour(proposed_region_segmentation)
+            for i in num_objects:
+                contours = self._get_segmentation_contour(proposed_region_segmentation)
 
-            buffer_threshold = numpy.hypot(object_size.height, object_size.width) / 2
+                buffer_threshold = (
+                    numpy.hypot(object_size.height, object_size.width) / 2
+                )
 
-            inner_contours = self._get_inner_segmentation_contour(
-                contours, buffer_threshold
-            )
+                inner_contours = self._get_inner_segmentation_contour(
+                    contours, buffer_threshold
+                )
 
-            try:
-                (
-                    x_center,
-                    y_center,
-                ) = random.choice(inner_contours[0])
-            except:
-                print(f"{proposed_region.file_name} skipped")
-                continue
+                try:
+                    (
+                        x_center,
+                        y_center,
+                    ) = random.choice(inner_contours[0])
+                except:
+                    print(f"{proposed_region.file_name} skipped")
+                    break
 
-            bbox = RBBox(
-                x_center=x_center,
-                y_center=y_center,
-                height=object_size.height,
-                width=object_size.width,
-                alpha=int(random.uniform(0, 180)),
-            )
-            bboxes.append(bbox)
+                bbox = RBBox(
+                    x_center=x_center,
+                    y_center=y_center,
+                    height=object_size.height,
+                    width=object_size.width,
+                    alpha=int(random.uniform(0, 180)),
+                )
+                bboxes_per_image.append(bbox)
+                proposed_region_segmentation = self._update_region(
+                    proposed_region_segmentation, bbox
+                )
+            bboxes.append(bboxes)
         return bboxes
+
+    def _update_region(self, region, bbox):
+        center = (bbox.x_center, bbox.x_center)  # Center of the box
+        size = (bbox.width, bbox.height)  # Width and height of the box
+        angle = bbox.alpha
+        rect = cv2.boxPoints(((center[0], center[1]), (size[0], size[1]), angle))
+        rect = numpy.int0(rect)
+        region = cv2.fillPoly(region, [rect], 0)
+        return region
 
     def _get_segmentation_contour(
         self,
