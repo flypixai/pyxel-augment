@@ -27,7 +27,7 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
             bboxes_per_image = []
             proposed_region_segmentation = proposed_region.detections.mask[0]
 
-            for i in num_objects:
+            for i in range(num_objects):
                 contours = self._get_segmentation_contour(proposed_region_segmentation)
 
                 buffer_threshold = (
@@ -37,7 +37,7 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
                 inner_contours = self._get_inner_segmentation_contour(
                     contours, buffer_threshold
                 )
-
+                # TODO find a better way to do this without taking only the first contour
                 try:
                     (
                         x_center,
@@ -58,17 +58,17 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
                 proposed_region_segmentation = self._update_region(
                     proposed_region_segmentation, bbox
                 )
-            bboxes.append(bboxes)
+            bboxes.append(bboxes_per_image)
         return bboxes
 
     def _update_region(self, region, bbox):
-        center = (bbox.x_center, bbox.x_center)  # Center of the box
-        size = (bbox.width, bbox.height)  # Width and height of the box
+        center = (bbox.x_center, bbox.y_center)  
+        size = (bbox.width, bbox.height) 
         angle = bbox.alpha
         rect = cv2.boxPoints(((center[0], center[1]), (size[0], size[1]), angle))
         rect = numpy.int0(rect)
-        region = cv2.fillPoly(region, [rect], 0)
-        return region
+        new_region = cv2.fillPoly(region, [rect],  color=(0, 0, 0))
+        return new_region
 
     def _get_segmentation_contour(
         self,
