@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 from PIL import Image
 
+from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
+
 
 def get_vertex_coordinates(
     x_center: float,
@@ -85,3 +87,27 @@ def draw_rotated_bbox(points: np.array, image_size: tuple) -> Image:
     cv2.drawContours(image_bbox, [points_denormalized], 0, (255, 255, 255), -1)
     image_bbox = Image.fromarray(image_bbox)
     return image_bbox
+
+
+def convert_rotated_bbox_to_yolo(rbbox: RBBox, image_size: tuple) -> List:
+    rect = get_vertex_coordinates(
+        rbbox.x_center, rbbox.y_center, rbbox.width, rbbox.height, rbbox.alpha
+    )
+
+    x_values, y_values = zip(*rect)
+    x_min, x_max = min(x_values), max(x_values)
+    y_min, y_max = min(y_values), max(y_values)
+
+    width = x_max - x_min
+    height = y_max - y_min
+
+    x_center = x_min + width / 2
+    y_center = y_min + height / 2
+
+    x_center = x_center / image_size[0]
+    width = width / image_size[0]
+    y_center = y_center / image_size[1]
+    height = height / image_size[1]
+
+    yolo_bbox = [x_center, y_center, width, height]
+    return yolo_bbox
