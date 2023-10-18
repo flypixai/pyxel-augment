@@ -1,5 +1,7 @@
 import random
 from typing import List
+from pathlib import Path
+import math
 
 import cv2
 import numpy
@@ -56,18 +58,26 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
                 )
                 bboxes_per_image.append(bbox)
                 proposed_region_segmentation = self._update_region(
-                    proposed_region_segmentation, bbox
+                    proposed_region_segmentation, bbox, inner_contours[0]
                 )
             bboxes.append(bboxes_per_image)
         return bboxes
 
-    def _update_region(self, region, bbox):
+    def _update_region(self, region, bbox, exterior):
         center = (bbox.x_center, bbox.y_center)  
         size = (bbox.width, bbox.height) 
         angle = bbox.alpha
+
+        radius = int(math.hypot(bbox.width, bbox.height))
+
+        
+
         rect = cv2.boxPoints(((center[0], center[1]), (size[0], size[1]), angle))
         rect = numpy.int0(rect)
-        new_region = cv2.fillPoly(region, [rect],  color=(0, 0, 0))
+
+        center = numpy.int0(center)
+
+        new_region = cv2.circle(region, center, radius, color=(0, 0, 0) , thickness= -1)
         return new_region
 
     def _get_segmentation_contour(

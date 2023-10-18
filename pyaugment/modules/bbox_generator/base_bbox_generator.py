@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional
 
-from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
+from typing import List
+
 from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 from pyaugment.modules.utils.bbox_transforms import convert_rotated_bbox_to_yolo, RBBox
+from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
+
 
 
 class BaseRBBoxGenerator(ABC):
