@@ -8,7 +8,7 @@ from diffusers import ControlNetModel, UniPCMultistepScheduler
 from diffusers.utils import load_image
 from PIL import Image
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
+from pyaugment.modules.utils.bbox_transforms import RBBox
 from pyaugment.modules.object_inpainter.base_object_inpainter import BaseObjectInpainter
 from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 from pyaugment.modules.utils.bbox_transforms import (

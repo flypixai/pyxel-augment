@@ -1,11 +1,20 @@
 import math
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import cv2
 import numpy as np
 from PIL import Image
+from dataclasses import dataclass
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
+
+
+@dataclass
+class RBBox:
+    x_center: float
+    y_center: float
+    height: float
+    width: float
+    alpha: Optional[float] = 0.0
 
 
 def get_vertex_coordinates(
