@@ -8,10 +8,10 @@ from diffusers import ControlNetModel, UniPCMultistepScheduler
 from diffusers.utils import load_image
 from PIL import Image
 
-from pyaugment.modules.utils.bbox_transforms import RBBox
 from pyaugment.modules.object_inpainter.base_object_inpainter import BaseObjectInpainter
 from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 from pyaugment.modules.utils.bbox_transforms import (
+    RBBox,
     draw_rotated_bbox,
     get_padded_outbounding_bbox,
     get_vertex_coordinates,
@@ -22,6 +22,7 @@ from pyaugment.modules.utils.pipeline_stable_diffusion_controlnet_inpaint import
 )
 
 MIN_PADDING = 10
+CONTROLNET_INPUT_SIZE = (512, 512)
 
 
 class CannyControlNetObjectInpainter(BaseObjectInpainter):
@@ -87,7 +88,7 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         relative_bbox = transform_bbox_coordinates(
             bbox=bbox_vertices, new_coordinates_system=self.context_bbox
         )
-        self.mask_image = draw_rotated_bbox(relative_bbox, background_image.size)
+        self.mask_image = draw_rotated_bbox(relative_bbox, CONTROLNET_INPUT_SIZE)
         self.context_image = self._crop_and_resize(background_image, self.context_bbox)
         self.canny_image = self._rotate_and_center(
             canny_image_origin,
@@ -108,7 +109,7 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
 
     def _crop_and_resize(self, image: Image, bbox):
         cropped_image = image.crop(bbox)
-        resized_image = cropped_image.resize((512, 512))
+        resized_image = cropped_image.resize(CONTROLNET_INPUT_SIZE)
         return resized_image
 
     def _rotate_and_center(
