@@ -78,10 +78,14 @@ To perform object-based data augmentation with pyaugment, follow these steps:
 3. **Load Object Inpainter**: Configure the object inpainter module.
 
 4. **For Each Object**:
-   a. **Get Object Size**: Estimate the size of the object.
-   b. **Get Relevant Generation Region**: Determine the region for generating the object.
-   c. **Generate Bounding Boxes (BBoxes)**: Create bounding boxes for object placement.
-   d. **Inpaint Objects**: Use inpainting to generate objects within the specified region.
+
+    a. **Get Object Size**: Estimate the size of the object.
+
+    b. **Get Relevant Generation Region**: Determine the region for generating the object.
+
+    c. **Generate Bounding Boxes (BBoxes)**: Create bounding boxes for object placement.
+    
+    d. **Inpaint Objects**: Use inpainting to generate objects within the specified region.
 
 In the `main.py` script, we provide an example of the entire pipeline using a SEEM model for the region proposer and the Canny Edge ControlNet for inpainting. You can run the script with the following command:
 
