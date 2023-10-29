@@ -99,13 +99,13 @@ python3 main.py \
 The pipeline has been developed for, and tested on, arial imagery. However, it can be applied to any other image data. Here are some examples of data generated using the pipeline.
 
 ### Generating cars and trees on drone images
-<div style="display: flex; justify-content: center;">
-  <img src="assets/image_for_readme_drone_2.jpg" alt="Image 1"  style="margin-right: 30px;"  width="300" />
+<div style="display: flex; justify-content: center; align-items: center;">
+  <img src="assets/image_for_readme_drone_2.jpg" alt="Image 1" style="margin-right: 30px;" width="300" />
   <img src="assets/image_for_readme_drone.jpg" alt="Image 2" width="300" />
 </div>
 
 ### Generating cars on satellite images
-<div style="display: flex; justify-content: center;">
+<div style="display: flex; justify-content: center; align-items: center;">
   <img src="assets/image_for_readme_satellite.jpg" alt="Image 1"  style="margin-right: 30px;"  width="300" />
   <img src="assets/image_for_readme_satellite2.jpg" alt="Image 2" width="300" />
 </div>
