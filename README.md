@@ -3,14 +3,14 @@
 
 A Python package for object-based data augmentation. The data augmentation is formulated as an inpainting task, where given  a background image, a mask and a prompt describing the object to be added, a new image with a synthetic object is generated. For more automation, we add to the package a region proposer and a Bounding Box (BBox) generator module, which would spare the user the struggle of manually creating the mask for the area to be inpainted. The package is composed of the following modules: 
 
-- Region proposer: Given an image and a text prompt describing the background in which the desired object could be placed, the region proposer returns a segmented background region.
-- Size estimator: Out of a size range specified by the user, the size estimator module randomly samples the height and weight of the BBox. 
-- BBox generator: Using the output of the region proposer and the output of the size estimator, the BBox generator returns a list of BBoxes in which objects can be placed, ensuring that they do not overlap. The current BBox generator supports saving the BBoxes in YOLO format, so the new dataset can be easily used for object detection tasks.
-- Object inpainter: Given a background image, prompts describing the desired objects and BBoxes, the object inpainter generates a synthetic objects such as it is blended with the background. 
+- **Region proposer:** Given an image and a text prompt describing the background in which the desired object could be placed, the region proposer returns a segmented background region.
+- **Size estimator:** Out of a size range specified by the user, the size estimator module randomly samples the height and weight of the BBox. 
+- **BBox generator:** Using the output of the region proposer and the output of the size estimator, the BBox generator returns a list of BBoxes in which objects can be placed, ensuring that they do not overlap. The current BBox generator supports saving the BBoxes in YOLO format, so the new dataset can be easily used for object detection tasks.
+- **Object inpainter:** Given a background image, prompts describing the desired objects and BBoxes, the object inpainter generates a synthetic objects such as it is blended with the background. 
 ## Installation
 To use this package, ensure you meet the following requirements:
 - Python Version: Python 3.8.10
-- 16 GPU of GPU memory
+- 16 GPU memory
 
 To install the package, you can use pip:
 ```bash
