@@ -8,7 +8,7 @@ from diffusers import ControlNetModel, UniPCMultistepScheduler
 from diffusers.utils import load_image
 from PIL import Image
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
+from pyaugment.modules.utils.bbox_transforms import RBBox
 from pyaugment.modules.object_inpainter.base_object_inpainter import BaseObjectInpainter
 from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 from pyaugment.modules.utils.bbox_transforms import (
@@ -48,32 +48,33 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         background_images: List[AnnotatedImage],
         image_condition_path: str,
         text_condition: str,
-        bboxes: List[RBBox],
+        bboxes: List[List[RBBox]],
         num_inference_steps: Optional[int] = 30,
         controlnet_conditioning_scale: Optional[float] = 0.8,
     ) -> List[np.ndarray]:
         image_condition = load_image(image_condition_path)
 
         final_images = []
-        for index, bbox in enumerate(bboxes):
+        for index, bboxes_per_image in enumerate(bboxes):
             background_image = Image.fromarray(background_images[index].image_array)
             background_image = load_image(background_image)
-            self._update_controlnet_inputs(background_image, image_condition, bbox)
-            generated_image = self.pipe(
-                text_condition,
-                num_inference_steps=num_inference_steps,
-                image=self.context_image,
-                control_image=self.canny_image,
-                controlnet_conditioning_scale=controlnet_conditioning_scale,
-                mask_image=self.mask_image,
-                num_images_per_prompt=1,
-            ).images[0]
+            for bbox in bboxes_per_image:
+                self._update_controlnet_inputs(background_image, image_condition, bbox)
+                generated_image = self.pipe(
+                    text_condition,
+                    num_inference_steps=num_inference_steps,
+                    image=self.context_image,
+                    control_image=self.canny_image,
+                    controlnet_conditioning_scale=controlnet_conditioning_scale,
+                    mask_image=self.mask_image,
+                    num_images_per_prompt=1,
+                ).images[0]
 
-            final_image = self._resize_and_paste(
-                self.context_bbox, generated_image, background_image
-            )
+                background_image = self._resize_and_paste(
+                    self.context_bbox, generated_image, background_image
+                )
 
-            final_images.append(final_image)
+            final_images.append(background_image)
         return final_images
 
     def _update_controlnet_inputs(

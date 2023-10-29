@@ -1,6 +1,9 @@
 import random
 from typing import List
+from pathlib import Path
+import math
 
+import cv2
 import numpy
 from shapely import MultiPolygon, Polygon, buffer
 from skimage import measure
@@ -16,38 +19,66 @@ from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
 class RandomRBBoxGenerator(BaseRBBoxGenerator):
     def generate_bbox(
-        self, proposed_regions: List[AnnotatedImage], object_size: ObjectSize
+        self,
+        proposed_regions: List[AnnotatedImage],
+        object_size: ObjectSize,
+        num_objects: int,
     ) -> RBBox:
         bboxes = []
         for proposed_region in proposed_regions:
+            bboxes_per_image = []
             proposed_region_segmentation = proposed_region.detections.mask[0]
 
-            contours = self._get_segmentation_contour(proposed_region_segmentation)
+            for i in range(num_objects):
+                contours = self._get_segmentation_contour(proposed_region_segmentation)
 
-            buffer_threshold = numpy.hypot(object_size.height, object_size.width) / 2
+                buffer_threshold = (
+                    numpy.hypot(object_size.height, object_size.width) / 2
+                )
 
-            inner_contours = self._get_inner_segmentation_contour(
-                contours, buffer_threshold
-            )
+                inner_contours = self._get_inner_segmentation_contour(
+                    contours, buffer_threshold
+                )
+                # TODO find a better way to do this without taking only the first contour
+                try:
+                    (
+                        x_center,
+                        y_center,
+                    ) = random.choice(inner_contours[0])
+                except:
+                    print(f"{proposed_region.file_name} skipped")
+                    break
 
-            try:
-                (
-                    x_center,
-                    y_center,
-                ) = random.choice(inner_contours[0])
-            except:
-                print(f"{proposed_region.file_name} skipped")
-                continue
-
-            bbox = RBBox(
-                x_center=x_center,
-                y_center=y_center,
-                height=object_size.height,
-                width=object_size.width,
-                alpha=int(random.uniform(0, 180)),
-            )
-            bboxes.append(bbox)
+                bbox = RBBox(
+                    x_center=x_center,
+                    y_center=y_center,
+                    height=object_size.height,
+                    width=object_size.width,
+                    alpha=int(random.uniform(0, 180)),
+                )
+                bboxes_per_image.append(bbox)
+                proposed_region_segmentation = self._update_region(
+                    proposed_region_segmentation, bbox, inner_contours[0]
+                )
+            bboxes.append(bboxes_per_image)
         return bboxes
+
+    def _update_region(self, region, bbox, exterior):
+        center = (bbox.x_center, bbox.y_center)  
+        size = (bbox.width, bbox.height) 
+        angle = bbox.alpha
+
+        radius = int(math.hypot(bbox.width, bbox.height))
+
+        
+
+        rect = cv2.boxPoints(((center[0], center[1]), (size[0], size[1]), angle))
+        rect = numpy.int0(rect)
+
+        center = numpy.int0(center)
+
+        new_region = cv2.circle(region, center, radius, color=(0, 0, 0) , thickness= -1)
+        return new_region
 
     def _get_segmentation_contour(
         self,

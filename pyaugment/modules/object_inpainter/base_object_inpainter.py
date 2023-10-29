@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import numpy
 
-from pyaugment.modules.bbox_generator.base_bbox_generator import RBBox
+from pyaugment.modules.utils.bbox_transforms import RBBox
 from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 
 
