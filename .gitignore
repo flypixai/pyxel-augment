@@ -2,6 +2,3 @@ dist/
 pyaugment/__pycache__/
 pyaugment.egg-info/
 build/
-trash/
-models/
-*.pyc
