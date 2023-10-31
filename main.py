@@ -26,13 +26,12 @@ def main(args):
 
     try:
         shutil.copytree(str(Path(images_path).parent), images_path_synthetic)
-    except:
-        print("synthtetic folder already exists")
-
+    except OSError as e:
+        print(f"Error {e}: The synthetic folder already exists")
     try:
         os.mkdir(images_path_synthetic + "/labels")
-    except:
-        print("labels exists")
+    except OSError as e:
+        print(f"Error {e}: Labels folder already exists")
 
     config_dir = args.config_dir
 
@@ -123,7 +122,6 @@ if __name__ == "__main__":
         "--n_objects_range",
         nargs="+",
         type=int,
-        default=[2, 7],
         help="Range of the number of objects",
     )
     args = parser.parse_args()
