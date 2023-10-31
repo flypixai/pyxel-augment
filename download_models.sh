@@ -35,8 +35,8 @@ case "$model_name" in
                     "https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth")
         ;;
     "SEEM")
-        download_url=("https://huggingface.co/xdecoder/SEEM/resolve/main/seem_focalt_v1.pt"
-                    "https://raw.githubusercontent.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once/main/demo_code/configs/seem/seem_focalt_lang.yaml"
+        download_url=("https://huggingface.co/xdecoder/SEEM/resolve/main/seem_focall_v0.pt"
+                    "https://raw.githubusercontent.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once/main/demo_code/configs/seem/seem_focall_lang.yaml"
         )
         ;;
     *)  
