@@ -1,7 +1,7 @@
-import random
-from typing import List
-from pathlib import Path
 import math
+import random
+from pathlib import Path
+from typing import List
 
 import cv2
 import numpy
@@ -16,24 +16,28 @@ from pyaugment.modules.bbox_generator.base_bbox_generator import (
 from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
 from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
 
+BUFFER = 3
+
 
 class RandomRBBoxGenerator(BaseRBBoxGenerator):
     def generate_bbox(
         self,
         proposed_regions: List[AnnotatedImage],
         object_size: ObjectSize,
-        num_objects: int,
+        num_objects: List[int],
     ) -> RBBox:
         bboxes = []
         for proposed_region in proposed_regions:
             bboxes_per_image = []
             proposed_region_segmentation = proposed_region.detections.mask[0]
 
-            for i in range(num_objects):
+            num_object_rand = random.randint(num_objects[0], num_objects[1])
+
+            for i in range(num_object_rand):
                 contours = self._get_segmentation_contour(proposed_region_segmentation)
 
                 buffer_threshold = (
-                    numpy.hypot(object_size.height, object_size.width) / 2
+                    numpy.hypot(object_size.height, object_size.width) * BUFFER / 2
                 )
 
                 inner_contours = self._get_inner_segmentation_contour(
@@ -44,7 +48,7 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
                     (
                         x_center,
                         y_center,
-                    ) = random.choice(inner_contours[0])
+                    ) = random.choice(random.choice(inner_contours))
                 except:
                     print(f"{proposed_region.file_name} skipped")
                     break
@@ -60,24 +64,29 @@ class RandomRBBoxGenerator(BaseRBBoxGenerator):
                 proposed_region_segmentation = self._update_region(
                     proposed_region_segmentation, bbox, inner_contours[0]
                 )
+                new_image = numpy.copy(proposed_region_segmentation)
+                for cont in inner_contours:
+                    vertices = numpy.array(cont, dtype=numpy.int32)
+                    vertices = vertices.reshape((-1, 1, 2))
+                    new_image = cv2.polylines(
+                        new_image, [vertices], isClosed=True, color=(0, 255, 0)
+                    )
             bboxes.append(bboxes_per_image)
         return bboxes
 
     def _update_region(self, region, bbox, exterior):
-        center = (bbox.x_center, bbox.y_center)  
-        size = (bbox.width, bbox.height) 
+        center = (bbox.x_center, bbox.y_center)
+        size = (bbox.width, bbox.height)
         angle = bbox.alpha
 
-        radius = int(math.hypot(bbox.width, bbox.height))
-
-        
+        radius = int(math.hypot(bbox.width, bbox.height)) * BUFFER
 
         rect = cv2.boxPoints(((center[0], center[1]), (size[0], size[1]), angle))
         rect = numpy.int0(rect)
 
         center = numpy.int0(center)
 
-        new_region = cv2.circle(region, center, radius, color=(0, 0, 0) , thickness= -1)
+        new_region = cv2.circle(region, center, radius, color=(0, 0, 0), thickness=-1)
         return new_region
 
     def _get_segmentation_contour(

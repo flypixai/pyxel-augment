@@ -36,13 +36,13 @@ project_directory/
 │   ├── images/
 │   ├── labels/
 ```
-- The conditions folder is needed if the inpainting approach requires image conditioning, such as the Canny_Edge_Controlnet based approach. Under the object folders, conditions are stored, for each generated object, a condition is randomly sampled from the list, to ensure better generation quality and more accurate size estimation, condition images should be cropped around the condition, i.e. the less empty background the more accurate the generation.
+- conditions: this folder is needed if the inpainting approach requires image conditioning, such as the Canny_Edge_Controlnet based approach. Under the object folders, conditions are stored, for each generated object, a condition is randomly sampled from the list, to ensure better generation quality and more accurate size estimation, condition images should be cropped around the condition, i.e. the less empty background the more accurate the generation.
 
-- Models: This directory stores pre-downloadable models. Currently, the package supports SEEM and Grounded_SAM models for the region proposer module. To download these models, use the download_models.sh script. Run download_models.sh SEEM to download the SEEM model or download_models.sh GSAM for Grounded SAM.
+- models: this directory stores pre-downloadable models. Currently, the package supports [SEEM](https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once/tree/main) and [Grounded_SAM](https://github.com/UX-Decoder/Segment-Everything-Everywhere-All-At-Once/tree/main) models for the region proposer module. To download these models, use the download_models.sh script. Run download_models.sh SEEM to download the SEEM model or download_models.sh GSAM for Grounded SAM.
 
-- yolo_dataset: This folder holds your initial dataset, including images and labels.
+- yolo_dataset: this folder holds your initial dataset, including images and labels.
 
-- object_specifications.json: This JSON file is where you specify object details, including the path to the conditions folder, object names, backgrounds, IDs, and size ranges. Ensure that object IDs align with those in your initial YOLO dataset. The object specifications.json should have this structure: 
+- object_specifications.json: this JSON file is where you specify object details, including the path to the conditions folder, object names, backgrounds, IDs, and size ranges. Ensure that object IDs align with those in your initial YOLO dataset. The object specifications.json should have this structure: 
 
 ```json
 {
@@ -84,7 +84,7 @@ To perform object-based data augmentation with pyaugment, follow these steps:
     b. **Get Relevant Generation Region**: Determine the region for generating the object.
 
     c. **Generate Bounding Boxes (BBoxes)**: Create bounding boxes for object placement.
-    
+
     d. **Inpaint Objects**: Use inpainting to generate objects within the specified region.
 
 In the `main.py` script, we provide an example of the entire pipeline using a SEEM model for the region proposer and the Canny Edge ControlNet for inpainting. You can run the script with the following command:
@@ -115,7 +115,7 @@ The pipeline has been developed for, and tested on, arial imagery. However, it c
 </div>
 
 **Note:** 
-The objects were generated using ControlNet, a model trained on drone imagery. These objects were extracted from drone scenes, scaled to enhance model learning, and placed on a white background. Image prompts were created using the canny edges of the objects, while the text prompt used for training was "A top view of {object} as seen from a satellite." For more details on fine-tuning ControlNet, please refer to the [ControlNet GitHub repository](https://github.com/lllyasviel/ControlNet).
+The objects were generated using ControlNet, a model trained on drone imagery. These objects were extracted from drone scenes, scaled to enhance model learning, and placed on a white background. Image prompts were created using the canny edges of the objects, while the text prompt used for training was "A top view of {object} as seen from a satellite." For more details on fine-tuning ControlNet, please refer to the [ControlNet](https://github.com/lllyasviel/ControlNet).
 
 ## Credits
 This package has been developed by building upon the work of various authors and their open-source projects. I would like to express my appreciation to the following projects and their creators, as they served as essential sources of inspiration and knowledge for the development of this package:
