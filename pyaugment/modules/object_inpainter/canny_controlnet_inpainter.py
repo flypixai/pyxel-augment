@@ -1,4 +1,6 @@
 import math
+import random
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import cv2
@@ -21,7 +23,7 @@ from pyaugment.modules.utils.pipeline_stable_diffusion_controlnet_inpaint import
     StableDiffusionControlNetInpaintPipeline,
 )
 
-MIN_PADDING = 10
+MIN_PADDING = 1
 CONTROLNET_INPUT_SIZE = (512, 512)
 
 
@@ -49,6 +51,7 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         background_images: List[AnnotatedImage],
         image_condition_path: str,
         text_condition: str,
+        negative_prompt: str,
         bboxes: List[List[RBBox]],
         num_inference_steps: Optional[int] = 30,
         controlnet_conditioning_scale: Optional[float] = 0.8,
@@ -59,10 +62,16 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
         for index, bboxes_per_image in enumerate(bboxes):
             background_image = Image.fromarray(background_images[index].image_array)
             background_image = load_image(background_image)
-            for bbox in bboxes_per_image:
+            for i, bbox in enumerate(bboxes_per_image):
                 self._update_controlnet_inputs(background_image, image_condition, bbox)
+                if "car" in text_condition:
+                    color = random.sample(["white"], 1)[0]
+                    text_condition = (
+                        f"a topview of a {color} car as seen by a satellite image"
+                    )
                 generated_image = self.pipe(
                     text_condition,
+                    negative_prompt=negative_prompt,
                     num_inference_steps=num_inference_steps,
                     image=self.context_image,
                     control_image=self.canny_image,
@@ -70,7 +79,6 @@ class CannyControlNetObjectInpainter(BaseObjectInpainter):
                     mask_image=self.mask_image,
                     num_images_per_prompt=1,
                 ).images[0]
-
                 background_image = self._resize_and_paste(
                     self.context_bbox, generated_image, background_image
                 )

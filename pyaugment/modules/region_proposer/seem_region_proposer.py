@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -8,6 +9,7 @@ from PIL import Image
 from skimage.transform import resize
 from supervision.detection.core import Detections
 from torchvision import transforms
+from tqdm import tqdm
 
 from pyaugment.modules.region_proposer.base_region_proposer import (
     AnnotatedImage,
@@ -65,7 +67,8 @@ class SEEMRegionProposer(BaseRegionProposer):
         images_path = Path(images_path)
         image_list = images_path.glob("*")
         annotated_images = []
-        for image in image_list:
+        print("Searching for background regions...")
+        for image in tqdm(image_list):
             detections = self._get_detections(image, prompt)
             if detections is None:
                 continue

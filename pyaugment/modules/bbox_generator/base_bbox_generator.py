@@ -1,12 +1,10 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-
 from typing import List
 
-from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
-from pyaugment.modules.utils.bbox_transforms import convert_rotated_bbox_to_yolo, RBBox
 from pyaugment.modules.region_proposer.base_region_proposer import AnnotatedImage
-
+from pyaugment.modules.size_estimator.base_size_estimator import ObjectSize
+from pyaugment.modules.utils.bbox_transforms import RBBox, convert_rotated_bbox_to_yolo
 
 
 class BaseRBBoxGenerator(ABC):
@@ -17,8 +15,8 @@ class BaseRBBoxGenerator(ABC):
         pass
 
     def save_as_yolo(self, obj_id, bboxes: List[RBBox], images: List[AnnotatedImage]):
-        image_size = images[0].image_array.shape
         for i, bboxes_per_image in enumerate(bboxes):
+            image_size = images[i].image_array.shape
             image_name = images[i].file_name
             file_name = str(image_name.name)[:-3] + "txt"
             file_path = Path(image_name.parent.parent, "labels", file_name)
