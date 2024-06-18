@@ -1,6 +1,8 @@
+torch
+torchvision
 addict
 clip
-diffusers==0.16.1
+diffusers
 easydict
 einops
 fairscale
@@ -21,16 +23,14 @@ Pillow
 plyfile
 pycocotools
 pyrender
-PyYAML==6.0
-Requests==2.26.0
+PyYAML
+Requests
 scipy
 seaborn
-setuptools==60.2.0
-supervision==0.6.0
+setuptools
+supervision
 termcolor
 timm
-torch
-torchvision
 tqdm
 transformers
 trimesh
@@ -48,4 +48,4 @@ segment_anything
 groundingdino-py
 accelerate
 kornia
-detectron2 @ git+https://github.com/facebookresearch/detectron2@4e80df1
+detectron2 @ git+https://github.com/facebookresearch/detectron2
