@@ -22,4 +22,4 @@ WORKDIR /tmp
 RUN pip install -r requirements.txt
 
 
-RUN  pip install 'git+https://github.com/facebookresearch/detectron2.git'
+RUN pip install 'git+https://github.com/facebookresearch/detectron2.git'
