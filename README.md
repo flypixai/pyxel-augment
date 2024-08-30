@@ -1,5 +1,7 @@
 # PyxelAugment 
 
+This is the home for PyxelAugment, a generative DL-based synthetic augmentation framework developed by the [FlyPix AI](https://flypix.ai/) team.
+
 ## Description
 
 A Python package for object-based data augmentation. The data augmentation is formulated as an inpainting task, where
